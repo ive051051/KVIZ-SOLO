@@ -774,6 +774,86 @@ body {
     0 4px 10px rgba(0,0,0,0.24),
     inset 0 1px 0 rgba(255,255,255,0.14);
 }
+
+/* BOT PRIKAZ */
+.bot-box {
+  width: 100%;
+  height: 100%;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.bot-name {
+  font-size: clamp(26px, 4.4vw, 50px);
+  font-weight: 900;
+  color: #ffe66a;
+  text-shadow:
+    0 0 10px rgba(255,230,106,0.7),
+    0 0 22px rgba(255,180,0,0.35);
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.bot-status {
+  margin-top: 7.5%;
+  min-height: 1.4em;
+  font-size: clamp(24px, 4vw, 44px);
+  font-weight: 900;
+  color: white;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.4);
+}
+
+.bot-status.thinking {
+  color: white;
+}
+
+.bot-status.correct {
+  color: #7eff8b;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(110,255,140,0.95),
+    0 0 38px rgba(40,210,90,0.95);
+}
+
+.bot-status.wrong {
+  color: #ff8e8e;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(255,120,120,0.95),
+    0 0 38px rgba(255,40,40,0.95);
+}
+
+.bot-status.result-animate {
+  animation: botResultZoom 1s ease forwards;
+}
+
+.bot-dots {
+  display: inline-block;
+  min-width: 1.5em;
+  text-align: left;
+}
+
+@keyframes botResultZoom {
+  0% {
+    transform: scale(0.45);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 </style>
 </head>
 
@@ -783,21 +863,11 @@ body {
 
   <div class="start-screen" id="startScreen">
     <div class="start-form">
-      <div class="start-title">UPIŠI IMENA:</div>
+      <div class="start-title">UPIŠI IME:</div>
 
       <div class="name-row">
         <span>1.</span>
         <input id="nameInput1" type="text" maxlength="6" autocomplete="off">
-      </div>
-
-      <div class="name-row">
-        <span>2.</span>
-        <input id="nameInput2" type="text" maxlength="6" autocomplete="off">
-      </div>
-
-      <div class="name-row">
-        <span>3.</span>
-        <input id="nameInput3" type="text" maxlength="6" autocomplete="off">
       </div>
 
       <div class="start-btn-row">
@@ -838,6 +908,11 @@ body {
   <div class="question-box" id="qbox" style="display:none;">
     <h2 id="question"></h2>
     <div class="answers" id="answers"></div>
+
+    <div class="bot-box" id="botBox">
+      <div class="bot-name" id="botName"></div>
+      <div class="bot-status" id="botStatus"></div>
+    </div>
   </div>
 
 </div>
@@ -856,12 +931,21 @@ let attackTarget = null;
 let selectedAnswerLocked = false;
 let playerNames = ["", "", ""];
 let gameFinished = false;
+let botDotsInterval = null;
+let botAutoStopTimeout = null;
 
 let gameQuestions = [];
 let questionIndex = 0;
 
 let activeTimeouts = [];
 let activeIntervals = [];
+
+const BOT_NAMES_P2 = ["ANNA", "MARA", "KLARA", "SARA"];
+const BOT_NAMES_P3 = ["BRKO", "DENA", "ZILE", "CIGO"];
+const BOT_ACCURACY = {
+  1: 0.60,
+  2: 0.70
+};
 
 const counter = document.getElementById("counter");
 const attackTextEl = document.getElementById("attackText");
@@ -877,9 +961,7 @@ const winnerOverlayEl = document.getElementById("winnerOverlay");
 const winnerNameEl = document.getElementById("winnerName");
 const winnerScoreEl = document.getElementById("winnerScore");
 const nameInputs = [
-  document.getElementById("nameInput1"),
-  document.getElementById("nameInput2"),
-  document.getElementById("nameInput3")
+  document.getElementById("nameInput1")
 ];
 const nameEls = [
   document.getElementById("n1"),
@@ -891,6 +973,13 @@ const playerEls = [
   document.getElementById("p2"),
   document.getElementById("p3")
 ];
+
+const qboxEl = document.getElementById("qbox");
+const questionEl = document.getElementById("question");
+const answersEl = document.getElementById("answers");
+const botBoxEl = document.getElementById("botBox");
+const botNameEl = document.getElementById("botName");
+const botStatusEl = document.getElementById("botStatus");
 
 const baseTurnPatterns = [
   [0, 1, 2],
@@ -1461,6 +1550,20 @@ function clearTrackedTimers() {
   activeIntervals = [];
 }
 
+function clearBotDotsAnimation() {
+  if (botDotsInterval) {
+    clearInterval(botDotsInterval);
+    botDotsInterval = null;
+  }
+}
+
+function clearBotAutoStop() {
+  if (botAutoStopTimeout) {
+    clearTimeout(botAutoStopTimeout);
+    botAutoStopTimeout = null;
+  }
+}
+
 function playAttackResultMp3(isCorrect) {
   const audio = isCorrect ? applauseAudio : booAudio;
   try {
@@ -1662,6 +1765,15 @@ nameInputs.forEach(input => {
   });
 });
 
+function pickRandomName(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function assignBotNames() {
+  playerNames[1] = pickRandomName(BOT_NAMES_P2);
+  playerNames[2] = pickRandomName(BOT_NAMES_P3);
+}
+
 function setDisplayedNames() {
   nameEls.forEach((el, index) => {
     el.textContent = playerNames[index] || "";
@@ -1858,6 +1970,16 @@ function hideWinnerOverlay() {
   winnerScoreEl.textContent = "";
 }
 
+function hideBotDisplay() {
+  clearBotDotsAnimation();
+  botBoxEl.style.display = "none";
+  botNameEl.textContent = "";
+  botStatusEl.textContent = "";
+  botStatusEl.className = "bot-status";
+  questionEl.style.display = "flex";
+  answersEl.style.display = "grid";
+}
+
 function showRoundAnimation(callback) {
   const isFinalRound = round === 10;
 
@@ -1899,9 +2021,25 @@ function startAttackSequence(number) {
   }, 3600);
 }
 
+function isHumanTurn() {
+  return currentPlayer === 0;
+}
+
+function scheduleBotAutoStop() {
+  clearBotAutoStop();
+  const delay = 700 + Math.floor(Math.random() * 1200);
+  botAutoStopTimeout = trackedTimeout(() => {
+    if (!running || questionOpen || gameFinished || isHumanTurn()) return;
+    if (currentNumber === null) return;
+    stopCounter();
+    startQuestion(currentNumber);
+  }, delay);
+}
+
 function startCounter() {
   if (gameFinished) return;
 
+  clearBotAutoStop();
   stopCounter();
   hideAttackVisuals();
 
@@ -1936,9 +2074,14 @@ function startCounter() {
     currentNumber = r;
     counter.innerText = r;
   }, 50);
+
+  if (!isHumanTurn()) {
+    scheduleBotAutoStop();
+  }
 }
 
 counter.onclick = () => {
+  if (!isHumanTurn()) return;
   if (!running || questionOpen || gameFinished) return;
   if (currentNumber === null) return;
 
@@ -1946,6 +2089,60 @@ counter.onclick = () => {
   stopCounter();
   startQuestion(currentNumber);
 };
+
+function startBotThinkingDots() {
+  clearBotDotsAnimation();
+  const states = [".", "..", "..."];
+  let index = 0;
+  botStatusEl.innerHTML = `ODGOVARA<span class="bot-dots">${states[index]}</span>`;
+  botStatusEl.className = "bot-status thinking";
+
+  botDotsInterval = trackedInterval(() => {
+    index = (index + 1) % states.length;
+    botStatusEl.innerHTML = `ODGOVARA<span class="bot-dots">${states[index]}</span>`;
+  }, 350);
+}
+
+function startBotTurn(num) {
+  if (gameFinished) return;
+
+  qboxEl.style.display = "flex";
+  questionEl.style.display = "none";
+  answersEl.style.display = "none";
+  botBoxEl.style.display = "flex";
+
+  botNameEl.textContent = playerNames[currentPlayer] || `IGRAČ ${currentPlayer + 1}`;
+  startBotThinkingDots();
+
+  const isCorrect = Math.random() < (BOT_ACCURACY[currentPlayer] || 0.5);
+
+  trackedTimeout(() => {
+    clearBotDotsAnimation();
+
+    botStatusEl.className = "bot-status " + (isCorrect ? "correct" : "wrong");
+    botStatusEl.textContent = isCorrect ? "TOČNO" : "NETOČNO";
+    void botStatusEl.offsetWidth;
+    botStatusEl.classList.add("result-animate");
+
+    if (isCorrect) {
+      playCorrectSound();
+      if (attackTarget !== null) {
+        playAttackResultMp3(true);
+        playCrowdHitSound();
+      }
+    } else {
+      playWrongSound();
+      if (attackTarget !== null) {
+        playAttackResultMp3(false);
+        playCrowdDisappointedSound();
+      }
+    }
+
+    trackedTimeout(() => {
+      answer(isCorrect, num);
+    }, 1000);
+  }, 2000);
+}
 
 function startQuestion(num) {
   if (questionOpen || gameFinished) return;
@@ -1955,13 +2152,19 @@ function startQuestion(num) {
   questionOpen = true;
   selectedAnswerLocked = false;
 
-  const q = getNextQuestion();
-  let box = document.getElementById("qbox");
-  let qtext = document.getElementById("question");
-  let ans = document.getElementById("answers");
+  if (!isHumanTurn()) {
+    startBotTurn(num);
+    return;
+  }
 
-  qtext.innerText = q.question;
-  ans.innerHTML = "";
+  const q = getNextQuestion();
+  qboxEl.style.display = "flex";
+  questionEl.style.display = "flex";
+  answersEl.style.display = "grid";
+  botBoxEl.style.display = "none";
+
+  questionEl.innerText = q.question;
+  answersEl.innerHTML = "";
 
   q.answers.forEach((a, i) => {
     let b = document.createElement("button");
@@ -1984,10 +2187,9 @@ function startQuestion(num) {
     b.addEventListener("touchend", clearPressed);
 
     b.onclick = () => handleAnswerSelection(i, q.correct, num);
-    ans.appendChild(b);
+    answersEl.appendChild(b);
   });
 
-  box.style.display = "flex";
   fitQuestionText();
 }
 
@@ -2101,7 +2303,8 @@ function answer(correct, num) {
 
   questionOpen = false;
   selectedAnswerLocked = false;
-  document.getElementById("qbox").style.display = "none";
+  qboxEl.style.display = "none";
+  hideBotDisplay();
 
   if (attackTarget !== null) {
     if (correct) {
@@ -2199,6 +2402,7 @@ function finishGame() {
 
   gameFinished = true;
   stopCounter();
+  clearBotAutoStop();
   hideAttackVisuals();
   hideAttackLock();
   counter.innerText = "KRAJ";
@@ -2254,6 +2458,8 @@ function nextTurn() {
 
 function startGame() {
   clearTrackedTimers();
+  clearBotDotsAnimation();
+  clearBotAutoStop();
   round = 1;
   currentTurnIndex = 0;
   round10Order = null;
@@ -2264,6 +2470,7 @@ function startGame() {
   selectedAnswerLocked = false;
   gameFinished = false;
   prepareGameQuestions();
+  assignBotNames();
   setDisplayedNames();
   setCurrentPlayer();
   drawNumbers();
@@ -2275,6 +2482,7 @@ function startGame() {
   hideAttackLock();
   hideAttackVisuals();
   hideWinnerOverlay();
+  hideBotDisplay();
   updatePlayerEffects();
   resetBtn.style.display = "flex";
   showRoundAnimation(() => {
@@ -2284,6 +2492,8 @@ function startGame() {
 
 function resetGameToStart() {
   clearTrackedTimers();
+  clearBotDotsAnimation();
+  clearBotAutoStop();
   stopCounter();
   running = false;
   players = [0, 0, 0];
@@ -2311,9 +2521,10 @@ function resetGameToStart() {
   hideAttackLock();
   hideAttackVisuals();
   hideWinnerOverlay();
+  hideBotDisplay();
   updatePlayerEffects();
 
-  document.getElementById("qbox").style.display = "none";
+  qboxEl.style.display = "none";
   numbersEl.innerHTML = "";
   roundTextEl.textContent = "";
   counter.innerText = "-";
@@ -2322,7 +2533,8 @@ function resetGameToStart() {
 }
 
 function launchGameFromStartScreen() {
-  playerNames = nameInputs.map(input => input.value.trim().slice(0, 6).toUpperCase());
+  const enteredName = (nameInputs[0].value.trim().slice(0, 6).toUpperCase()) || "IGRAČ 1";
+  playerNames = [enteredName, "", ""];
   setDisplayedNames();
   startScreenEl.style.display = "none";
   startGame();
