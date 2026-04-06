@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kviz igra</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1026">
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  color: white;
+  background: black;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game {
+  position: relative;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  height: min(100dvh, calc(100vw * 16 / 9));
+  aspect-ratio: 9 / 16;
+  background: url("pozadina.png") center/100% 100% no-repeat;
+  overflow: hidden;
+}
+
+.start-screen {
+  position: absolute;
+  inset: 0;
+  background: url("START.png") center/100% 100% no-repeat;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.start-play-btn {
+  padding: 0.15em 0.35em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: white;
+  font-size: clamp(30px, 5.2vw, 48px);
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-shadow:
+    0 0 10px rgba(0,0,0,0.65),
+    0 0 18px rgba(255,255,255,0.18),
+    0 0 28px rgba(80,160,255,0.16);
+  transition:
+    text-shadow 0.12s ease,
+    transform 0.08s ease,
+    filter 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.start-play-btn.pressed {
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.45),
+    0 0 22px rgba(255,255,255,0.65),
+    0 0 34px rgba(80,160,255,0.55);
+  transform: scale(0.98);
+  filter: brightness(1.18);
+}
+
+.start-form {
+  position: absolute;
+  top: 18.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 58%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.8%;
+}
+
+.start-title {
+  font-size: clamp(22px, 3.5vw, 34px);
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 3%;
+  text-shadow:
+    0 0 8px rgba(0,0,0,0.65),
+    0 0 16px rgba(0,0,0,0.45);
+}
+
+.name-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3.2%;
+  margin-bottom: 2.2%;
+}
+
+.name-row span {
+  min-width: 10%;
+  text-align: right;
+  font-size: clamp(22px, 3.4vw, 32px);
+  font-weight: 900;
+  text-shadow:
+    0 0 8px rgba(0,0,0,0.65),
+    0 0 16px rgba(0,0,0,0.45);
+}
+
+.name-row input {
+  width: 68%;
+  height: 2.6em;
+  padding: 0 0.7em;
+  box-sizing: border-box;
+  border-radius: 14px;
+  border: 2px solid white;
+  background: rgba(0, 0, 0, 0.45);
+  color: white;
+  font-size: clamp(16px, 2.4vw, 22px);
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 0 10px rgba(255,255,255,0.06),
+    0 0 10px rgba(0,0,0,0.22);
+}
+
+.name-row input::placeholder {
+  color: rgba(255,255,255,0.58);
+}
+
+.start-btn-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 9.2%;
+}
+
+.attack-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease;
+  z-index: 2;
+}
+
+.attack-dim.show {
+  opacity: 1;
+}
+
+/* RESET TIPKA */
+.reset-btn {
+  position: absolute;
+  top: 1.9%;
+  left: 2.6%;
+  width: 7.2%;
+  aspect-ratio: 1 / 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.92);
+  background: rgba(8, 16, 40, 0.45);
+  color: white;
+  font-size: clamp(20px, 3.4vw, 32px);
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 22;
+  box-shadow:
+    0 0 10px rgba(0,0,0,0.35),
+    0 0 12px rgba(30,94,255,0.35);
+  transition: transform 0.08s ease, filter 0.12s ease, background 0.12s ease;
+}
+
+.reset-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.12);
+}
+
+/* GORNJI BROJEVI */
+.round-numbers {
+  position: absolute;
+  top: 6.8%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 76%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.7%;
+  overflow: hidden;
+  z-index: 3;
+}
+
+.round-numbers button {
+  aspect-ratio: 1 / 1;
+  flex: 1 1 auto;
+  max-width: 9%;
+  padding: 0;
+  font-size: clamp(14px, 2vw, 20px);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: white;
+  border: 1.5px solid white;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.round-numbers button.used-number {
+  opacity: 0.35;
+}
+
+.round-numbers.final-round button {
+  color: #ffe66a;
+  border-color: #ffe66a;
+  box-shadow:
+    0 0 8px rgba(255, 230, 106, 0.9),
+    0 0 18px rgba(255, 210, 60, 0.85),
+    0 0 32px rgba(255, 170, 0, 0.75);
+}
+
+/* ROUND TEXT */
+.round-text {
+  position: absolute;
+  top: 13.9%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.7);
+  font-size: clamp(22px, 4vw, 42px);
+  font-weight: 900;
+  color: #ffffff;
+  opacity: 1;
+  pointer-events: none;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(80,160,255,0.95),
+    0 0 36px rgba(30,94,255,0.95);
+  z-index: 3;
+}
+
+.round-text.final-round {
+  color: #ffe66a;
+  text-shadow:
+    0 0 8px rgba(255, 245, 190, 0.95),
+    0 0 18px rgba(255, 220, 90, 0.95),
+    0 0 34px rgba(255, 180, 0, 0.95),
+    0 0 50px rgba(255, 140, 0, 0.9);
+}
+
+.round-text.animate {
+  animation: roundZoom 3s ease forwards;
+}
+
+@keyframes roundZoom {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  16.666% {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  83.333% {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+}
+
+/* COUNTER */
+.counter {
+  position: absolute;
+  top: 31.2%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 20%;
+  min-height: 6.2%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(42px, 6.5vw, 78px);
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+  padding: 1.2% 2.5%;
+  cursor: pointer;
+  text-shadow:
+    0 0 8px rgba(255,255,255,0.95),
+    0 0 18px rgba(80,160,255,0.95),
+    0 0 34px rgba(30,94,255,1);
+  z-index: 3;
+}
+
+.counter.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ATTACK TEXT */
+.attack-text {
+  position: absolute;
+  top: 31.2%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  font-size: clamp(34px, 6vw, 70px);
+  font-weight: 900;
+  color: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(255,80,80,0.95),
+    0 0 36px rgba(255,0,0,0.95);
+  z-index: 6;
+}
+
+.attack-text.show {
+  animation: attackZoom 2.6s ease forwards;
+}
+
+@keyframes attackZoom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+}
+
+/* ATTACK NUMBER */
+.attack-number {
+  position: absolute;
+  top: 31.2%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 20%;
+  min-height: 6.2%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(42px, 6.5vw, 78px);
+  font-weight: 900;
+  color: #ffe66a;
+  line-height: 1;
+  padding: 1.2% 2.5%;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow:
+    0 0 5px rgba(255,240,170,0.75),
+    0 0 12px rgba(255,220,80,0.7),
+    0 0 22px rgba(255,190,0,0.7);
+  z-index: 6;
+}
+
+.attack-number.show {
+  opacity: 1;
+}
+
+/* ATTACK RESULT OVERLAY */
+.attack-result-text {
+  position: absolute;
+  top: 31.2%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.4);
+  font-size: clamp(34px, 6vw, 72px);
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.attack-result-text.show-correct {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(110,255,140,0.95),
+    0 0 38px rgba(40,210,90,0.95);
+  animation: attackResultZoom 3s ease forwards;
+}
+
+.attack-result-text.show-wrong {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.95),
+    0 0 20px rgba(255,120,120,0.95),
+    0 0 38px rgba(255,40,40,0.95);
+  animation: attackResultZoom 3s ease forwards;
+}
+
+@keyframes attackResultZoom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  8% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  88% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* IGRAČI */
+.player {
+  position: absolute;
+  top: 53.8%;
+  transform: translateX(-50%);
+  min-width: 19%;
+  min-height: 4.4%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(20px, 3.1vw, 30px);
+  font-family: "Arial Black", Arial, sans-serif;
+  font-weight: 900;
+  background: #1e5eff;
+  border: 2px solid white;
+  border-radius: 10px;
+  padding: 0.8% 1.5%;
+  box-shadow:
+    0 0 6px rgba(255,255,255,0.55),
+    0 0 16px rgba(30,94,255,0.9);
+  z-index: 4;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.player.dimmed-player {
+  background: #6b7280;
+  color: #d9dde3;
+  border-color: #cfd4db;
+  box-shadow:
+    0 0 6px rgba(210,215,222,0.28),
+    0 0 14px rgba(120,125,132,0.4);
+}
+
+.player.active-player {
+  background: #63a0ff;
+  z-index: 7;
+}
+
+.player.attack-target {
+  animation: attackPulse 1.15s ease-in-out infinite;
+  z-index: 7;
+}
+
+.player.lose-zoom {
+  animation: loseZoom 1s ease-in-out forwards;
+  z-index: 8;
+}
+
+.player.gain-zoom {
+  animation: gainZoom 1s ease-in-out forwards;
+  z-index: 8;
+}
+
+.player-name {
+  position: absolute;
+  top: 60.1%;
+  transform: translateX(-50%) scale(1);
+  width: 20%;
+  text-align: center;
+  font-size: clamp(12px, 1.9vw, 18px);
+  font-weight: 900;
+  color: white;
+  text-shadow:
+    0 0 6px rgba(0,0,0,0.85),
+    0 0 10px rgba(0,0,0,0.55);
+  z-index: 4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.player-name.active-turn-name {
+  color: #ffe66a;
+  animation: turnNamePulse 0.55s ease-out;
+  text-shadow:
+    0 0 6px rgba(0,0,0,0.85),
+    0 0 10px rgba(0,0,0,0.55);
+}
+
+@keyframes turnNamePulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  42% {
+    transform: translateX(-50%) scale(1.28);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes attackPulse {
+  0% {
+    background: #1e5eff;
+    border-color: white;
+    box-shadow:
+      0 0 6px rgba(255,255,255,0.55),
+      0 0 16px rgba(30,94,255,0.9);
+  }
+  50% {
+    background: #c81f1f;
+    border-color: rgba(255,70,70,0.98);
+    box-shadow:
+      0 0 8px rgba(255,255,255,0.7),
+      0 0 16px rgba(255,80,80,0.45);
+  }
+  100% {
+    background: #1e5eff;
+    border-color: white;
+    box-shadow:
+      0 0 6px rgba(255,255,255,0.55),
+      0 0 16px rgba(30,94,255,0.9);
+  }
+}
+
+@keyframes loseZoom {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  35% {
+    transform: translateX(-50%) scale(1.18);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes gainZoom {
+  0% {
+    transform: translateX(-50%) scale(1);
+  }
+  35% {
+    transform: translateX(-50%) scale(1.18);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* POBJEDNIK OVERLAY */
+.winner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 18;
+  transition: opacity 0.35s ease;
+}
+
+.winner-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.winner-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 82%;
+  transform: translate(-50%, -50%) scale(0.45);
+  text-align: center;
+  opacity: 0;
+}
+
+.winner-overlay.show .winner-content {
+  animation: winnerZoom 1.2s ease forwards;
+}
+
+.winner-title {
+  font-size: clamp(28px, 4.8vw, 52px);
+  font-weight: 900;
+  color: white;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.55),
+    0 0 24px rgba(80,160,255,0.28);
+}
+
+.winner-subtitle {
+  margin-top: 1.5%;
+  font-size: clamp(22px, 3.8vw, 38px);
+  font-weight: 900;
+  color: white;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.45);
+}
+
+.winner-name {
+  margin-top: 4.2%;
+  font-size: clamp(34px, 6.6vw, 76px);
+  font-weight: 900;
+  color: #ffe66a;
+  line-height: 1.05;
+  text-shadow:
+    0 0 10px rgba(255,230,106,0.7),
+    0 0 24px rgba(255,180,0,0.35);
+  word-break: break-word;
+}
+
+.winner-score {
+  margin-top: 4%;
+  font-size: clamp(28px, 5vw, 58px);
+  font-weight: 900;
+  color: white;
+  text-shadow:
+    0 0 10px rgba(255,255,255,0.5),
+    0 0 24px rgba(80,160,255,0.22);
+}
+
+@keyframes winnerZoom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.45);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* mali pomaci */
+#p1, #n1 { left: 21.6%; }
+#p2, #n2 { left: 50%; }
+#p3, #n3 { left: 78.4%; }
+
+/* PITANJE */
+.question-box {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 25.2%;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.68);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 2.1% 4% 2.1%;
+  text-align: center;
+  box-shadow:
+    0 0 18px rgba(0,0,0,0.45),
+    inset 0 0 18px rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  z-index: 5;
+}
+
+/* PITANJE TEXT */
+.question-box h2 {
+  margin: 0 auto 1.6%;
+  width: 92%;
+  font-size: 30px;
+  line-height: 1.16;
+  color: white;
+  text-shadow: 0 0 8px rgba(255,255,255,0.35);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 39%;
+  max-height: 39%;
+  overflow: hidden;
+}
+
+/* ODGOVORI */
+.answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4.5% 8%;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.answers button {
+  padding: 0.62em 0.55em;
+  min-height: 3.2em;
+  font-size: clamp(12px, 1.7vw, 16px);
+  line-height: 1.1;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-align: center;
+  background: rgba(30, 94, 255, 0.14);
+  color: white;
+  border: 2px solid white;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 2px 8px rgba(255,255,255,0.10),
+    inset 0 -3px 10px rgba(0,0,0,0.18),
+    0 4px 10px rgba(0,0,0,0.20);
+  transition: background-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease;
+}
+
+.answers button.pressed {
+  background: rgba(127, 176, 255, 0.28);
+  box-shadow:
+    inset 0 2px 10px rgba(255,255,255,0.14),
+    inset 0 -3px 10px rgba(0,0,0,0.18),
+    0 2px 6px rgba(0,0,0,0.18);
+  transform: scale(0.98);
+}
+
+.answers button.correct-answer {
+  background: rgba(126, 230, 139, 0.72);
+  border-color: rgba(215, 255, 224, 0.92);
+  color: white;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,0.26),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+
+.answers button.wrong-answer {
+  background: rgba(255, 142, 142, 0.72);
+  border-color: rgba(255, 210, 210, 0.92);
+  color: white;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,0.26),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+
+.answers button.reveal-answer {
+  background: rgba(233, 221, 141, 0.68);
+  border-color: rgba(255, 246, 199, 0.9);
+  color: #ffffff;
+  box-shadow:
+    0 4px 10px rgba(0,0,0,0.24),
+    inset 0 1px 0 rgba(255,255,255,0.14);
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+  <div class="start-screen" id="startScreen">
+    <div class="start-form">
+      <div class="start-title">UPIŠI IMENA:</div>
+
+      <div class="name-row">
+        <span>1.</span>
+        <input id="nameInput1" type="text" maxlength="6" autocomplete="off">
+      </div>
+
+      <div class="name-row">
+        <span>2.</span>
+        <input id="nameInput2" type="text" maxlength="6" autocomplete="off">
+      </div>
+
+      <div class="name-row">
+        <span>3.</span>
+        <input id="nameInput3" type="text" maxlength="6" autocomplete="off">
+      </div>
+
+      <div class="start-btn-row">
+        <button class="start-play-btn" id="startBtn" type="button">IGRAJ!</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn" type="button" aria-label="Reset">↺</button>
+
+  <div class="attack-dim" id="attackDim"></div>
+
+  <div class="round-numbers" id="numbers"></div>
+  <div class="round-text" id="roundText"></div>
+
+  <div class="counter" id="counter">-</div>
+  <div class="attack-text" id="attackText">NAPAD!!!</div>
+  <div class="attack-number" id="attackNumber"></div>
+  <div class="attack-result-text" id="attackResultText"></div>
+
+  <div id="p1" class="player">0</div>
+  <div id="p2" class="player">0</div>
+  <div id="p3" class="player">0</div>
+
+  <div id="n1" class="player-name"></div>
+  <div id="n2" class="player-name"></div>
+  <div id="n3" class="player-name"></div>
+
+  <div class="winner-overlay" id="winnerOverlay">
+    <div class="winner-content">
+      <div class="winner-title">POBJEDNIK</div>
+      <div class="winner-subtitle">JE:</div>
+      <div class="winner-name" id="winnerName"></div>
+      <div class="winner-score" id="winnerScore"></div>
+    </div>
+  </div>
+
+  <div class="question-box" id="qbox" style="display:none;">
+    <h2 id="question"></h2>
+    <div class="answers" id="answers"></div>
+  </div>
+
+</div>
+
+<script>
+let players = [0, 0, 0];
+let round = 1;
+let used = new Set();
+let currentNumber = null;
+let running = false;
+let currentTurnIndex = 0;
+let currentPlayer = 0;
+let questionOpen = false;
+let round10Order = null;
+let attackTarget = null;
+let selectedAnswerLocked = false;
+let playerNames = ["", "", ""];
+let gameFinished = false;
+
+let gameQuestions = [];
+let questionIndex = 0;
+
+let activeTimeouts = [];
+let activeIntervals = [];
+
+const counter = document.getElementById("counter");
+const attackTextEl = document.getElementById("attackText");
+const attackNumberEl = document.getElementById("attackNumber");
+const attackResultTextEl = document.getElementById("attackResultText");
+const attackDimEl = document.getElementById("attackDim");
+const roundTextEl = document.getElementById("roundText");
+const numbersEl = document.getElementById("numbers");
+const startScreenEl = document.getElementById("startScreen");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const winnerOverlayEl = document.getElementById("winnerOverlay");
+const winnerNameEl = document.getElementById("winnerName");
+const winnerScoreEl = document.getElementById("winnerScore");
+const nameInputs = [
+  document.getElementById("nameInput1"),
+  document.getElementById("nameInput2"),
+  document.getElementById("nameInput3")
+];
+const nameEls = [
+  document.getElementById("n1"),
+  document.getElementById("n2"),
+  document.getElementById("n3")
+];
+const playerEls = [
+  document.getElementById("p1"),
+  document.getElementById("p2"),
+  document.getElementById("p3")
+];
+
+const baseTurnPatterns = [
+  [0, 1, 2],
+  [1, 2, 0],
+  [2, 0, 1]
+];
+
+const questionBank = [
+  {
+    question: "IZ KOJE ZEMLJE DOLAZI ANIMIRANI LIK MEDVJEDIĆ PADDINGTON?",
+    answers: ["PERUA", "KANADE", "INDIJE", "ISLANDA"]
+  },
+  {
+    question: "KOJI ZNANSTVENIK JE OTKRIO DA JE LJUDSKI VID REZULTAT PROJEKCIJE NA MREŽNICI?",
+    answers: ["JOHANNES KEPLER", "KOPERNIK", "ISAAC NEWTON", "GALILEO"]
+  },
+  {
+    question: "KOLIKO DANA PO ISLAMSKOM KALENDARU IMA GODINA KOJA NIJE PRIJESTUPNA?",
+    answers: ["354", "365", "376", "400"]
+  },
+  {
+    question: "KOJA MJERNA JEDINICA JE DOBILA IME PO TALIJANSKOM PLEMIĆU?",
+    answers: ["VOLT", "PASKAL", "OHM", "HERTZ"]
+  },
+  {
+    question: "KOLIKO JE KILOMETARA ZEMLJA UDALJENA OD SUNCA?",
+    answers: ["148.23 MILIJUNA KM", "41.28 MILIJUNA KM", "14.82 MILIJUNA KM", "1.48 MILIJUNA KM"]
+  },
+  {
+    question: "KOLIKO JE LJUDI DO SADA ŽIVJELO NA ZEMLJI?",
+    answers: ["OKO 100 MILIJARDI", "OKO 5 BILIJUNA", "OKO 1 BILIJUN", "OKO 50 MILIJARDI"]
+  },
+  {
+    question: "ŠTO JE BIO ČOVJEK NA KOJEM JE TEMELJEN LIK UJAK SAM?",
+    answers: ["INSPEKTOR MESA", "POVJESNIČAR", "MEHANIČAR", "POŠTAR"]
+  },
+  {
+    question: "TKO JE DIZAJNIRAO PRVI HELIKOPTER ZA MASOVNU PROIZVODNJU?",
+    answers: ["IGOR SIKORSKY", "ELMER SPERRY", "GOTTLIEB DAIMLER", "FERDINAND VON ZEPPELIN"]
+  },
+  {
+    question: "U DRUGOM SVJETSKOM RATU AMERIČKI VOJNICI KORISTILI SU PRVI KOMERCIJALNI SPREJ. KAKAV JE BIO TAJ SPREJ?",
+    answers: ["INSEKTICID", "ANTISEPTIK", "TEKUĆINA ZA ČIŠĆENJE", "KREMA ZA BRIJANJE"]
+  },
+  {
+    question: "KOJI AMERIČKI PREDSJEDNIK SE POJAVIO U SERIJI 'LAUGH-IN'?",
+    answers: ["RICHARD NIXON", "LYNDON JOHNSON", "JIMMY CARTER", "RONALD REAGAN"]
+  },
+  {
+    question: "KOJI BI VRH NEODOLJIVO PRIVUKAO HARRYJA POTTERA?",
+    answers: ["KLEK", "JAPETIĆ", "SLJEME", "SVETA GERA"]
+  },
+  {
+    question: "POLAZAK NARITA, ODREDIŠTE KEFLAVIK – ČIME PUTUJETE?",
+    answers: ["AVIONOM", "RAKETOM", "ŽELJEZNICOM", "ŽIČAROM"]
+  },
+  {
+    question: "KOJI JE IMOĆANIN ROĐEN U SPLITU PROSLAVIO PULU?",
+    answers: ["MATE PARLOV", "MARIJAN BENEŠ", "ANTUN JOSIPOVIĆ", "ŽELJKO MAVROVIĆ"]
+  },
+  {
+    question: "ASKJA, HEKLA I KATLA IMENA SU ISLANDSKIH...",
+    answers: ["VULKANA", "BOŽICA", "GRADOVA", "ZRAČNIH LUKA"]
+  },
+  {
+    question: "KOJI OD KEMIJSKIH ELEMENATA NIJE NAZVAN PO NOBELOVCU?",
+    answers: ["AJNŠTAJNIJ", "FERMIJ", "KIRIJ", "NOBELIJ"]
+  },
+  {
+    question: "HENRY MILLER JE ZA OPSCENOST NAPADAN ZBOG SVOJIH:",
+    answers: ["OBRATNICA", "POLARNICA", "EKVATORA", "MERIDIJANA"]
+  },
+  {
+    question: "KOJE JE KAZALIŠTE NAJSTARIJE U HRVATSKOJ?",
+    answers: ["HVARSKO", "RIJEČKO", "SPLITSKO", "DUBROVAČKO"]
+  },
+  {
+    question: "KAKO SE ZOVE ALBUM DINE DVORNIKA IZ 1993. GODINE?",
+    answers: ["PRIRODA I DRUŠTVO", "MATEMATIKA", "ZEMLJOPIS", "TJELESNI ODGOJ"]
+  },
+  {
+    question: "JELEN VRLO RAZGRANATIH ROGOVA U LOVAČKOM ŽARGONU ZOVE SE:",
+    answers: ["KAPITALAC", "KAPITALIST", "BURŽUJ", "ARISTOKRAT"]
+  },
+  {
+    question: "KAKO GLASI NARODNI NAZIV ZA VENERU?",
+    answers: ["DANICA", "MARICA", "KATICA", "SLAVICA"]
+  },
+  {
+    question: "'LABUĐE JEZERO' P. ILIČA ČAJKOVSKOG JE...",
+    answers: ["BALET", "SIMFONIJA", "MJUZIKL", "OPERETA"]
+  },
+  {
+    question: "KOJE ZANIMANJE POVEZUJEMO S IMENOM VARAŽDINCA LJUBOMIRA KEREKEŠA?",
+    answers: ["GLUMAC", "NOGOMETAŠ", "POLITIČAR", "ARHITEKT"]
+  },
+  {
+    question: "TKO JE NAKON POSUDBE DUGE 442 GODINE, 20. PROSINCA 1999., MAKAO VRATIO KINI?",
+    answers: ["PORTUGALCI", "ENGLEZI", "NIZOZEMCI", "FRANCUZI"]
+  },
+  {
+    question: "ŠTO JE KOD CZESŁAWA MIŁOSZA ZAROBLJENO, A KOD IMMANUELA KANTA ČISTO I PRAKTIČNO?",
+    answers: ["UM", "SILA", "ENERGIJA", "ZNANJE"]
+  },
+  {
+    question: "KOJI SISAVAC NESE JAJA?",
+    answers: ["ČUDNOVATI KLJUNAŠ", "KOALA", "PLAVETNI KIT", "DUPIN"]
+  },
+  {
+    question: "SAMURAJSKI KODEKS ZOVE SE...",
+    answers: ["BUSHIDO", "HARAKIRI", "KENDO", "AIKIDO"]
+  },
+  {
+    question: "GLAGOLSKI OBLICI KOJIMA U HRVATSKOM OZNAČAVAMO PROŠLOST SU PERFEKT, PLUSKVAMPERFEKT, AORIST I...",
+    answers: ["IMPERFEKT", "INFINITIV", "IMPERATIV", "INDIKATIV"]
+  },
+  {
+    question: "KOJA LJEPOTICA NAJBOLJE PRISTAJE UZ NOGOMETAŠA ROBERTA KOVAČA?",
+    answers: ["ANICA MARTINOVIĆ", "IVA RADIĆ", "FANI ĆAPALIJA", "JELENA MEDIĆ"]
+  },
+  {
+    question: "BACIL JE BAKTERIJA U OBLIKU:",
+    answers: ["ŠTAPIĆA", "KUGLICE", "GROZDA", "SPIRALE"]
+  },
+  {
+    question: "KOJI SE OD NAVEDENIH NAZIVA NE ODNOSI NA NAJVIŠI VRH NA ZEMLJI?",
+    answers: ["MOLOKAI", "CHOMOLUNGMA", "MOUNT EVEREST", "SAGARMATHA"]
+  },
+  {
+    question: "KAKO SE SLIKOVITO ZOVE ZRAKOPLOV?",
+    answers: ["ČELIČNA PTICA", "ZLATNA PTICA", "BAKRENA PTICA", "OLOVNA PTICA"]
+  },
+  {
+    question: "HVATAČ HVATA, BACAČ BACA, UDARAČ UDARA. KOJI JE TO SPORT?",
+    answers: ["BEJZBOL", "ODBOJKA", "HOKEJ", "NOGOMET"]
+  },
+  {
+    question: "KOJOJ VRSTI RIJEČI PRIPADA RIJEČ KUTOMJER?",
+    answers: ["IMENICA", "GLAGOL", "PRIDJEV", "PRIJEDLOG"]
+  },
+  {
+    question: "KAKO SE ZOVE ŽABAC KOJI PREDVODI MUPPETE?",
+    answers: ["KERMIT", "RALF", "GONZO", "WALDORF"]
+  },
+  {
+    question: "'ZDENAC ŽIVOTA' IVANA MEŠTROVIĆA NALAZI SE U ZAGREBU ISPRED:",
+    answers: ["KAZALIŠTA", "BURZE", "VIJEĆNICE", "SABORA"]
+  },
+  {
+    question: "LATIĆE CVIJETA ČINE VJENČIĆ, A LAPOVI CVIJETA:",
+    answers: ["ČAŠKU", "ČOKOT", "LISKU", "GROZD"]
+  },
+  {
+    question: "TKO SE NATJEČE U KLASI 'OPTIMIST'?",
+    answers: ["JEDRILIČARI", "SANJKAŠI", "MOTOCIKLISTI", "BICIKLISTI"]
+  },
+  {
+    question: "RENESANSNI LJETNIKOVAC TVRDALJ NALAZI SE U STAROM GRADU:",
+    answers: ["STAROM GRADU", "STARIGRADU", "NOVIGRADU", "BIOGRADU"]
+  },
+  {
+    question: "KOLIKO BAJTOVA IMA 1 KILOBAJT?",
+    answers: ["1024", "1000", "1104", "1011"]
+  },
+  {
+    question: "KOJA OD NAVEDENIH ŽIVOTINJA NE SPADA U SKUPINU MORSKIH PASA?",
+    answers: ["ORKA", "BIJELA PSINA", "MLAT", "MODRULJ"]
+  },
+  {
+    question: "NA SVOJE PRVO PUTOVANJE KOLUMBO KREĆE:",
+    answers: ["1492.", "1496.", "1497.", "1500."]
+  },
+  {
+    question: "ČEŠKI SU EVANGELICI 1618. 'UPRILIČILI' DEFENESTRACIJU, ODNOSNO BACANJE KRALJEVSKOGA NAMJESNIKA:",
+    answers: ["KROZ PROZOR", "POD VLAK", "U ŽIVO BLATO", "S MOSTA"]
+  },
+  {
+    question: "KAKO SE JOŠ NA HRVATSKOM KAŽE 'SLIJEPO CRIJEVO'?",
+    answers: ["CRVULJAK", "SLJEPIĆ", "VISULJAK", "CRIJEVULJAK"]
+  },
+  {
+    question: "U KOJOJ DRŽAVI ŽIVE KRAŠOVANI?",
+    answers: ["U RUMUNJSKOJ", "U MAĐARSKOJ", "U POLJSKOJ", "U UKRAJINI"]
+  },
+  {
+    question: "ŠTO JE PO NARODNOSTI MIKA HAKKINEN?",
+    answers: ["FINAC", "ŠKOT", "POLJAK", "DANAC"]
+  },
+  {
+    question: "KOLIKO GODINA TRAJE MANDAT PREDSJEDNIKA HRVATSKE?",
+    answers: ["5", "3", "4", "6"]
+  },
+  {
+    question: "GUDAČKI TRIO ČINE VIOLINA, VIOLA I...",
+    answers: ["VIOLONČELO", "MANDOLINA", "KONTRABAS", "HARFA"]
+  },
+  {
+    question: "POD KOJIM JE NAZIVOM JAVNOSTI POZNATIJI PLIVIN ANTIBIOTIK AZITHROMYCIN?",
+    answers: ["SUMAMED", "ANDOL", "ASPIRIN", "PLIVADON"]
+  },
+  {
+    question: "KOJA JE VELIKAŠKA OBITELJ ČETIRI STOLJEĆA GOSPODARILA TRAKOŠĆANOM?",
+    answers: ["DRAŠKOVIĆ", "FRANKOPAN", "ŠUBIĆ", "ERDÖDY"]
+  },
+  {
+    question: "ŠTO JE PO NARODNOSTI ISTRAŽIVAČ FERDINAND MAGELLAN?",
+    answers: ["PORTUGALAC", "ŠPANJOLAC", "FRANCUZ", "TALIJAN"]
+  },
+  {
+    question: "UOBIČAJENI NAZIV ZA CESTU OD KARLOVCA DO SENJA JE:",
+    answers: ["JOZEFINA", "KAROLINA", "LUJZIJANA", "PAULINA"]
+  },
+  {
+    question: "NEKAD JUŽNA RODEZIJA, A DANAS?",
+    answers: ["ZIMBABVE", "KONGO", "UGANDA", "MOZAMBIK"]
+  },
+  {
+    question: "KAKO SE ZOVE GROTESKNI LIK TURSKOG KAZALIŠTA SJENKI I JUNAK ANDRIĆEVE 'PROKLETE AVLIJE'?",
+    answers: ["KARAĐOZ", "SIMAN", "DŽEM-SULTAN", "ĐERZELEZ"]
+  },
+  {
+    question: "KOJI JE OD NAVEDENIH NAZIV PUSTINJE, A NE DRŽAVE?",
+    answers: ["NAMIB", "GABON", "NIGER", "MALI"]
+  },
+  {
+    question: "TOMAŠ MASARYK BIO JE PREDSJEDNIK:",
+    answers: ["ČEHOSLOVAČKE", "POLJSKE", "BUGARSKE", "MAĐARSKE"]
+  },
+  {
+    question: "KAKO JE IME APOLONOVOJ SVEĆENICI IZ DELFA?",
+    answers: ["PITIJA", "KIRKA", "IFIGENIJA", "KASANDRA"]
+  },
+  {
+    question: "KOJI JE DRŽIĆEV LIK ZNAN PO ŠKRTOSTI SAKRIVAO TEZORO U ĆUPU?",
+    answers: ["SKUP", "POMET", "STANAC", "BOKČILO"]
+  },
+  {
+    question: "KOJI JE NAŠ NAZIV ZA EKVATOR?",
+    answers: ["RAVNODNEVNIK", "POLUTNIK", "KOLUTNIK", "PRISOJNIK"]
+  },
+  {
+    question: "IZ KOJE AFRIČKE DRŽAVE DOLAZI KOFI ANNAN, GLAVNI TAJNIK UN-A?",
+    answers: ["GANE", "KAMERUNA", "TUNISA", "NIGERIJE"]
+  },
+  {
+    question: "TV SPORTSKA NOVINARKA, OSTVARILA JE USPJEŠNU KARIJERU U:",
+    answers: ["ATLETICI", "GIMNASTICI", "UMJETNIČKOM KLIZANJU", "RUKOMETU"]
+  },
+  {
+    question: "FRANCUSKA JE HIMNA POSTALA POPULARNA ZAHVALJUJUĆI DRAGOVOLJCIMA IZ:",
+    answers: ["MARSEILLA", "PARIZA", "BORDEAUXA", "STRASBOURA"]
+  },
+  {
+    question: "KAKO NAZIVAMO OŠTAR ZVUK KOJI PROIZVODI JAK VJETAR?",
+    answers: ["FIJUK", "CIJUK", "JAUK", "PIJUK"]
+  },
+  {
+    question: "KOGA JE U NASLOVU SVOGA ROMANA MEŠA SELIMOVIĆ SUOČIO SA SMRĆU?",
+    answers: ["DERVIŠA", "IMAMA", "MUJEZIMA", "HODŽU"]
+  },
+  {
+    question: "S KOJOM SU PJESMOM 'NOVI FOSILI' NA EUROVIZIJI 1987. OSVOJILI 4. MJESTO?",
+    answers: ["JA SAM ZA PLES", "ŽELJO MOJA", "MANGUP", "ROCK ME BABY"]
+  },
+  {
+    question: "AKO JE NAKON 'PSIHA' TRAUMATIČNO POSTALO TUŠIRANJE, NAKON 'MARATONCA' TRAUMATIČAN JE POSTAO ODLAZAK:",
+    answers: ["ZUBARU", "MESARU", "FRIZERU", "BANKARU"]
+  },
+  {
+    question: "DOK JE IZRAELCI NISU OKUPIRALI 1967., GOLANSKA VISORAVAN JE BILA U SASTAVU:",
+    answers: ["SIRIJE", "EGIPTA", "LIBANONA", "JORDANA"]
+  },
+  {
+    question: "KOJI SE KUKAC LATINSKOG NAZIVA DROSOPHILA MELANOGASTER ČESTO UPOTREBLJAVA U GENETIČKIM POKUSIMA?",
+    answers: ["VINSKA MUŠICA", "BOGOMOLJKA", "KRUMPIROVA ZLATICA", "PČELA"]
+  },
+  {
+    question: "KAKO SE ZOVE GLAVNI GRAD UZBEKISTANA?",
+    answers: ["TAŠKENT", "BAKU", "SAMARKAND", "MAHAČKALA"]
+  },
+  {
+    question: "NAZIV 'OPEKARNA' ODNOSI SE NA:",
+    answers: ["CIGLANU", "PILANU", "DVORANU", "TOPLANU"]
+  },
+  {
+    question: "'IMA JEDNA MODRA RIJEKA, VALJA NAMA...', U PJESMI MAKA DIZDARA.",
+    answers: ["PITI", "MLIJEKA", "DO OSJEKA", "PREKO RIJEKE"]
+  },
+  {
+    question: "U FILMSKOM JE SVIJETU KAO 'BB' ZNANA JEDNA I JEDINA...",
+    answers: ["BRIGITTE", "BARBARA", "BEATRICE", "BERNADETTE"]
+  },
+  {
+    question: "KAKO U TENISU NAZIVAMO PRIJESTUP PRI IZVOĐENJU SERVISA?",
+    answers: ["FOOT FAULT", "BREAK POINT", "POLE POSITION", "TIE BREAK"]
+  },
+  {
+    question: "VUKOTIĆ JE U 'SUROGATU' DUHOVITO PRIKAZAO SUVREMENU CIVILIZACIJU PREPLAVLJENU:",
+    answers: ["UMJETNIM TVOREVINAMA", "RATOVIMA", "KISELIM KIŠAMA", "NUKLEARNIM OTPADOM"]
+  },
+  {
+    question: "U ČEMU JE SVJETSKI UGLED STEKAO KORADO KORLEVIĆ?",
+    answers: ["ASTRONOMIJI", "BOTANICI", "MEDICINI", "PSIHOLOGIJI"]
+  },
+  {
+    question: "ŠTO SAČINJAVA DOBRE 3/4 ČISTOGA ZRAKA?",
+    answers: ["DUŠIK", "KISIK", "UGLJIK", "VODIK"]
+  },
+  {
+    question: "KOJI JE HRVATSKI SPORTAŠ NASTUPIO I NA LJETNIM I NA ZIMSKIM OLIMPIJSKIM IGRAMA?",
+    answers: ["IGOR BORASKA", "KREŠIMIR ČULJAK", "IVAN ŠOLA", "VEDRAN PAVLEK"]
+  },
+  {
+    question: "KOJI JE GRAD DO 1966., PRIJE BRUXELLESA, BIO GLAVNO SJEDIŠTE NATO-a?",
+    answers: ["PARIZ", "WASHINGTON", "BONN", "MADRID"]
+  },
+  {
+    question: "KOJI JE PIROMAN, ŽELJAN VJEČNE SLAVE, ZAPALIO ARTEMIDIN HRAM U EFEZU?",
+    answers: ["HEROSTRAT", "POLIMIK", "NERON", "ETEOKLO"]
+  },
+  {
+    question: "'OLD FAITHFUL' IME JE NAJPOZNATIJEG SVJETSKOG:",
+    answers: ["GEJZIRA", "NACIONALNOG PARKA", "VULKANA", "VODOPADA"]
+  },
+  {
+    question: "GLAVNI GRAD BENINA JE:",
+    answers: ["PORTO NOVO", "PORTO STARO", "PORTO VISOKO", "PORTO NISKO"]
+  },
+  {
+    question: "KAKO NAZIVAMO GRANICU DVIJU DRŽAVA KOJA SE PROLAZI BEZ VEĆIH FORMALNOSTI?",
+    answers: ["MEKA", "SPOREDNA", "PRISTUPAČNA", "TOPLA"]
+  },
+  {
+    question: "KAKO SE ZOVE PRVI STUPANJ U KOMPARACIJI PRIDJEVA?",
+    answers: ["POZITIV", "NEGATIV", "ABLATIV", "KOMPARATIV"]
+  },
+  {
+    question: "KAKO JE PREZIME GRGI, CRTANOM LIKU ISMETA VOLJEVICE?",
+    answers: ["ČVARAK", "PROTOKOL", "ČOKOLIN", "GRMALJ"]
+  },
+  {
+    question: "NASEOBINU EPIDAUR GRCI SU OSNOVALI NA MJESTU DANAŠNJEG:",
+    answers: ["CAVTATA", "VRSARA", "ZADRA", "OMIŠA"]
+  },
+  {
+    question: "KOJI NAROD NE GOVORI GERMANSKIM JEZIKOM?",
+    answers: ["FINCI", "DANCI", "ŠVEĐANI", "ISLANĐANI"]
+  },
+  {
+    question: "SVOJEVRSTAN UVOD ZA AMERIČKI GRAĐANSKI RAT BILA JE TZV. BOSTONSKA:",
+    answers: ["ČAJANKA", "USPAVANKA", "PIJANKA", "KAJDANKA"]
+  },
+  {
+    question: "NAKON FELINIJEVA FILMA 'SLATKI ŽIVOT' SVIJET JE POSTAO BOGATIJI ZA JEDAN TERMIN:",
+    answers: ["PAPARAZZO", "CAPPUCCINO", "CHIAROSCURO", "CALCIO"]
+  },
+  {
+    question: "KOJI SVETAC JE ZAŠTITNIK ENGLESKE?",
+    answers: ["SVETI JURAJ", "SVETI JAKOV", "SVETI IVAN", "SVETI ANTON"]
+  },
+  {
+    question: "KOJI JE FRANCUSKI KNJIŽEVNIK AUTOR ROMANA 'ZVONAR CRKVE NOTRE-DAME'?",
+    answers: ["VICTOR HUGO", "HONORE DE BALZAC", "GUSTAVE FLAUBERT", "EMILE ZOLA"]
+  },
+  {
+    question: "KAKO JE U NAS PREVEDEN 'DIRTY HARRY', PRVI FILM IZ SERIJALA O PRLJAVOM HARRYJU?",
+    answers: ["ŠKORPION UBIJA", "U VRELINI NOĆI", "TEŠKA META", "NA NIŠANU SNAJPERA"]
+  },
+  {
+    question: "KAKO SE NAZIVA SMRTONOSNO ORUŽJE, KIŠOBRAN SA ZAŠILJENIM VRHOM UMOČENIM U OTROV?",
+    answers: ["BUGARSKI KIŠOBRAN", "ALBANSKI KIŠOBRAN", "RUMUNJSKI KIŠOBRAN", "NJEMAČKI KIŠOBRAN"]
+  },
+
+  {
+    question: "KOJE SE BJELGORIČNO DRVO UVUKLO MEĐU CRNOGORIČNO DRVEĆE?",
+    answers: ["KESTEN", "SMREKA", "JELA", "TISA"]
+  },
+  {
+    question: "KOJI JE ZNANSTVENIK OTKRIO BACIL TUBERKULOZE?",
+    answers: ["ROBERT KOCH", "WILHELM ROENTGEN", "CESARE LOMBROSO", "LOUIS PASTEUR"]
+  },
+  {
+    question: "KAKO SE ZOVE DVOSLOŽNA PJESNIČKA STOPA?",
+    answers: ["JAMB", "LIMB", "DITIRAMB", "ROMB"]
+  },
+  {
+    question: "BRDO NA KOJEM SU PRONAĐENI OSTACI KRAPINSKOG PRAČOVJEKA ZOVE SE...",
+    answers: ["HUŠNJAKOVO BRDO", "ČEŠNJAKOVO BRDO", "BOŠNJAKOVO BRDO", "LJEŠNJAKOVO BRDO"]
+  },
+  {
+    question: "KAKO SE ZOVE VLASNICA HALJINE O KOJOJ SE 1998. BRUJILO U CIJELOM WASHINGTONU?",
+    answers: ["MONICA LEWINSKY", "VENUS WILLIAMS", "MADONNA", "JENNIFER LOPEZ"]
+  },
+  {
+    question: "KAKO SE ZOVE NAJGUŠĆI DIO ATMOSFERE U KOJEM SE ZBIVAJU METEOROLOŠKE PROMJENE?",
+    answers: ["TROPOSFERA", "EGZOSFERA", "NANOSFERA", "TERMOSFERA"]
+  },
+  {
+    question: "KOJA JE ŽLIJEZDA ČOVJEČJEG ORGANIZMA NAJVEĆA?",
+    answers: ["JETRA", "ŠTITNJAČA", "GUŠTERAČA", "HIPOFIZA"]
+  },
+  {
+    question: "KOJI JE RIMLJANIN PRVI POČEO MJERITI PULS U DIJAGNOSTIČKE SVRHE?",
+    answers: ["GALEN", "JUVENAL", "PLAUT", "PLUTARH"]
+  },
+  {
+    question: "ŠTO U DOSLOVNOM PRIJEVODU ZNAČI GALICIZAM ŠOFER?",
+    answers: ["LOŽAČ", "PUTNIK", "CESTA", "VOZAČ"]
+  },
+  {
+    question: "NAJPOZNATIJA SLIKA EDVARDA MUNCHA JEST:",
+    answers: ["KRIK", "GRČ", "SAN", "UZDAH"]
+  },
+  {
+    question: "NA KOLIKO KOTAČA POBJEĐUJE LANCE ARMSTRONG?",
+    answers: ["2", "8", "4", "3"]
+  },
+  {
+    question: "RENEOVA SUPRUGA U SERIJI 'ALO, ALO' ZOVE SE:",
+    answers: ["EDITTE", "HELGA", "MICHELLE", "YVETTE"]
+  },
+  {
+    question: "KOJE JE MJESTO RODNO MJESTO TINA UJEVIĆA?",
+    answers: ["VRGORAC", "RASTUŠJE", "DRINOVCI", "LUKOVDOL"]
+  },
+  {
+    question: "KOJI OD NAVEDENIH PLESOVA NE POTJEČE S KUBE?",
+    answers: ["SAMBA", "MAMBO", "RUMBA", "SALSA"]
+  },
+  {
+    question: "TKO SE SUKOBIO U STOGODIŠNJEM RATU?",
+    answers: ["FRANCUSKA I ENGLESKA", "ŠPANJOLSKA I FRANCUSKA", "ENGLESKA I NJEMAČKA", "NJEMAČKA I RUSIJA"]
+  },
+  {
+    question: "BOŽICA AFRODITA RODILA SE IZ...",
+    answers: ["MORSKE PJENE", "VATRE", "KORALJA", "RUŽE"]
+  },
+  {
+    question: "KOLIKO NOGU IMA MRAV?",
+    answers: ["6", "4", "10", "8"]
+  },
+  {
+    question: "KOJA JE DAMA POSTALA PRVA MINISTRICA U HRVATSKOJ VLADI?",
+    answers: ["LJILJA VOKIĆ", "LJERKA MINTAS-HODAK", "VESNA GIRARDI-JURKIĆ", "NANSI IVANIŠEVIĆ"]
+  },
+  {
+    question: "KOJI REFLEKS LIJEČNIK PROVJERAVA UDARCEM U KOLJENO?",
+    answers: ["PATELARNI", "LUMBALNI", "ABDOMINALNI", "DENTALNI"]
+  },
+  {
+    question: "NAJSJEVERNIJA TOČKA EUROPE NALAZI SE U FINNMARKU:",
+    answers: ["U NORVEŠKOJ", "U ŠVEDSKOJ", "U FINSKOJ", "U DANSKOJ"]
+  },
+
+  {
+    question: "KAKO SE ZOVE NAJVEĆI OD 7000 FILIPINSKIH OTOKA?",
+    answers: ["LUZON", "MINDANAO", "PALAWAN", "CEBU"]
+  },
+  {
+    question: "KAKO SE ZOVE NASTAMBA SJEVERNOAMERIČKIH INDIJANACA?",
+    answers: ["TIPI", "IGLU", "JURTA", "KOLIBA"]
+  },
+  {
+    question: "KAKO SE ZOVE NOVČIĆ KOJIM SU GRCI PLAĆALI PRIJEVOZ PREKO STIKSA U HAD?",
+    answers: ["OBOL", "DENAR", "TALENT", "DRAHMA"]
+  },
+  {
+    question: "KAKO SE ZOVE OBIČAJNO PRAVO U ISLAMSKIH NARODA?",
+    answers: ["ADAT", "ŠERIJAT", "SUNNA", "FETVA"]
+  },
+  {
+    question: "KAKO SE ZOVE LIK KOJEG JE U 'DINASTIJI' GLUMILA LINDA EVANS?",
+    answers: ["KRYSTLE CARRINGTON", "ALEXIS COLBY", "FALLON CARRINGTON", "DOMINIQUE DEVERAUX"]
+  },
+  {
+    question: "KAKO SE ZOVE MAJKA BENJAMINA, 12. SINA JAKOVLJEVA, KOJA JE UMRLA PRI PORODU?",
+    answers: ["RAHELA", "LEA", "SARA", "REBEKA"]
+  },
+  {
+    question: "KAKO SE ZOVE MITOLOŠKO ČUDOVIŠTE U KOJEM SU SJEDINJENI LAV I ORAO?",
+    answers: ["GRIFON", "KENTAUR", "MINOTAUR", "SFINGA"]
+  },
+  {
+    question: "KOLIKO JE KAVALIRA IMALA KRLEŽINA GOSPOĐICA MELANIJA?",
+    answers: ["TRI", "DVA", "PET", "JEDAN"]
+  },
+  {
+    question: "KOLIKO JE MAĆEHA IMALA BLOODY MARY, ENGLESKA KRALJICA MARIJA TUDOR?",
+    answers: ["DVIJE", "TRI", "JEDNU", "ČETIRI"]
+  },
+  {
+    question: "KOME LIJEČNICI POLAŽU ZAKLETVU DA ĆE SAVJESNO I DOSTOJNO OBAVLJATI SVOJU DUŽNOST?",
+    answers: ["HIPOKRATU", "GALENU", "ASKLEPIJU", "PLATONU"]
+  },
+  {
+    question: "KOME SE DOGODILO UKAZANJE U LOURDESU?",
+    answers: ["BERNADETTI SOUBIROUS", "IVANI ORLEANKI", "KATARINI SIENSKOJ", "TEREZI AVILSKOJ"]
+  },
+  {
+    question: "KORDELIJA, REGAN I GOMERIL KĆERI SU KOJEG KRALJA?",
+    answers: ["LEARA", "HAMLETA", "RICHARDA III", "MACBETHA"]
+  },
+  {
+    question: "KAKO SE ZOVE KRAĆA SKLADBA NESTALNA OBLIKA, NAJČEŠĆE ZA KLAVIR?",
+    answers: ["IMPROMPTU", "SONATA", "ETIDA", "SIMFONIJA"]
+  },
+  {
+    question: "KOJU SU FRANCUSKU KRALJICU ZVALI 'UDOVICA CAPET'?",
+    answers: ["MARIJA ANTOANETA", "MARIJA MEDICI", "KATARINA MEDICI", "ELEONORA AKVITANSKA"]
+  },
+  {
+    question: "KOJA ŽIVOTINJA JE NAJČEŠĆE PRIKAZIVANA U MINOJSKOJ UMJETNOSTI NA KRETI?",
+    answers: ["BIK", "KONJ", "LAV", "KOZA"]
+  },
+  {
+    question: "KOLIKI JE ZBROJ SVIH KUTOVA U TROKUTU?",
+    answers: ["180°", "360°", "90°", "270°"]
+  },
+  {
+    question: "KOLIKO GODINA MORA NAVRŠITI KONJ DA DOBIJE NAZIV 'STARI KONJ'?",
+    answers: ["5", "3", "7", "10"]
+  },
+  {
+    question: "KOLIKO IMA ATENJANA MEĐU LEGENDARNIH 7 GRČKIH MUDRACA?",
+    answers: ["TRI", "DVA", "JEDAN", "ČETIRI"]
+  },
+  {
+    question: "KOLIKO JE DUGAČAK TUNEL UČKA?",
+    answers: ["OKO 5 KM", "OKO 3 KM", "OKO 7 KM", "OKO 10 KM"]
+  },
+  {
+    question: "KOLIKO JE GODINA IMALA LOLITA KAD SE PROFESOR HUMBER HUMBER ZAGLEDAO U NJU?",
+    answers: ["12", "14", "10", "16"]
+  }
+];
+
+/* ZVUKOVI */
+let audioCtx = null;
+let audioUnlocked = false;
+
+/* MP3 ZVUKOVI ZA NAPAD */
+const applauseAudio = new Audio("applause.mp3");
+const booAudio = new Audio("boo.mp3");
+applauseAudio.preload = "auto";
+booAudio.preload = "auto";
+applauseAudio.volume = 0.5;
+booAudio.volume = 0.5;
+
+function trackedTimeout(fn, delay) {
+  const id = setTimeout(() => {
+    activeTimeouts = activeTimeouts.filter(t => t !== id);
+    fn();
+  }, delay);
+  activeTimeouts.push(id);
+  return id;
+}
+
+function trackedInterval(fn, delay) {
+  const id = setInterval(fn, delay);
+  activeIntervals.push(id);
+  return id;
+}
+
+function clearTrackedTimers() {
+  activeTimeouts.forEach(clearTimeout);
+  activeIntervals.forEach(clearInterval);
+  activeTimeouts = [];
+  activeIntervals = [];
+}
+
+function playAttackResultMp3(isCorrect) {
+  const audio = isCorrect ? applauseAudio : booAudio;
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  } catch (e) {}
+}
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) audioCtx = new AudioContextClass();
+  }
+
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume();
+  }
+
+  if (audioCtx) audioUnlocked = true;
+}
+
+function makeOsc(type, frequency, startTime, duration, gainStart, gainEnd) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = type;
+  osc.frequency.setValueAtTime(frequency, startTime);
+
+  gain.gain.setValueAtTime(Math.max(0.0001, gainStart), startTime);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainEnd), startTime + duration);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+  return { osc, gain };
+}
+
+function playCounterClickSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const { osc } = makeOsc("square", 520, t, 0.03, 0.012, 0.0001);
+  osc.frequency.exponentialRampToValueAtTime(780, t + 0.03);
+}
+
+function playRoundSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const a = makeOsc("triangle", 330, t, 0.22, 0.0001, 0.03);
+  a.osc.frequency.exponentialRampToValueAtTime(660, t + 0.22);
+
+  const b = makeOsc("sine", 660, t + 0.18, 0.35, 0.025, 0.0001);
+  b.osc.frequency.exponentialRampToValueAtTime(990, t + 0.53);
+
+  const c = makeOsc("triangle", 880, t + 0.4, 0.5, 0.03, 0.0001);
+  c.osc.frequency.exponentialRampToValueAtTime(1320, t + 0.9);
+}
+
+function playFinalRoundSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const intro1 = makeOsc("triangle", 392, t, 0.24, 0.0001, 0.04);
+  intro1.osc.frequency.exponentialRampToValueAtTime(523.25, t + 0.24);
+
+  const intro2 = makeOsc("triangle", 523.25, t + 0.18, 0.28, 0.03, 0.0001);
+  intro2.osc.frequency.exponentialRampToValueAtTime(659.25, t + 0.46);
+
+  const intro3 = makeOsc("triangle", 659.25, t + 0.36, 0.34, 0.035, 0.0001);
+  intro3.osc.frequency.exponentialRampToValueAtTime(783.99, t + 0.70);
+
+  const brass1 = makeOsc("sawtooth", 523.25, t + 0.62, 0.52, 0.035, 0.0001);
+  const brass2 = makeOsc("sawtooth", 659.25, t + 0.62, 0.52, 0.03, 0.0001);
+  const brass3 = makeOsc("sawtooth", 783.99, t + 0.62, 0.52, 0.028, 0.0001);
+
+  brass1.osc.frequency.exponentialRampToValueAtTime(587.33, t + 1.14);
+  brass2.osc.frequency.exponentialRampToValueAtTime(739.99, t + 1.14);
+  brass3.osc.frequency.exponentialRampToValueAtTime(880.0, t + 1.14);
+
+  const finale1 = makeOsc("sine", 1046.5, t + 1.08, 0.8, 0.05, 0.0001);
+  const finale2 = makeOsc("triangle", 1318.5, t + 1.08, 0.82, 0.04, 0.0001);
+
+  finale1.osc.frequency.exponentialRampToValueAtTime(1174.66, t + 1.88);
+  finale2.osc.frequency.exponentialRampToValueAtTime(1567.98, t + 1.90);
+}
+
+function playAttackSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  for (let i = 0; i < 4; i++) {
+    const start = t + i * 0.18;
+    const { osc } = makeOsc("sawtooth", 220, start, 0.12, 0.05, 0.0001);
+    osc.frequency.exponentialRampToValueAtTime(110, start + 0.12);
+  }
+
+  const boom = makeOsc("triangle", 140, t + 0.72, 0.55, 0.06, 0.0001);
+  boom.osc.frequency.exponentialRampToValueAtTime(70, t + 1.27);
+}
+
+function playCorrectSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const n1 = makeOsc("triangle", 660, t, 0.16, 0.045, 0.0001);
+  const n2 = makeOsc("triangle", 880, t + 0.12, 0.18, 0.04, 0.0001);
+  const n3 = makeOsc("triangle", 1320, t + 0.24, 0.35, 0.05, 0.0001);
+
+  n1.osc.frequency.exponentialRampToValueAtTime(760, t + 0.16);
+  n2.osc.frequency.exponentialRampToValueAtTime(990, t + 0.30);
+  n3.osc.frequency.exponentialRampToValueAtTime(1480, t + 0.59);
+}
+
+function playWrongSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const w1 = makeOsc("sawtooth", 320, t, 0.18, 0.05, 0.0001);
+  const w2 = makeOsc("square", 220, t + 0.12, 0.28, 0.04, 0.0001);
+
+  w1.osc.frequency.exponentialRampToValueAtTime(180, t + 0.18);
+  w2.osc.frequency.exponentialRampToValueAtTime(120, t + 0.40);
+}
+
+function playScoreGainSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const s1 = makeOsc("sine", 520, t, 0.08, 0.02, 0.0001);
+  const s2 = makeOsc("sine", 780, t + 0.08, 0.11, 0.018, 0.0001);
+  s1.osc.frequency.exponentialRampToValueAtTime(620, t + 0.08);
+  s2.osc.frequency.exponentialRampToValueAtTime(920, t + 0.19);
+}
+
+function playScoreLossSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const s1 = makeOsc("sine", 420, t, 0.1, 0.02, 0.0001);
+  const s2 = makeOsc("sine", 260, t + 0.08, 0.16, 0.02, 0.0001);
+  s1.osc.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+  s2.osc.frequency.exponentialRampToValueAtTime(160, t + 0.24);
+}
+
+function playCrowdHitSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const c1 = makeOsc("triangle", 420, t, 0.20, 0.015, 0.0001);
+  const c2 = makeOsc("triangle", 470, t + 0.03, 0.22, 0.014, 0.0001);
+  const c3 = makeOsc("sawtooth", 520, t + 0.06, 0.24, 0.010, 0.0001);
+  const c4 = makeOsc("sine", 610, t + 0.09, 0.28, 0.012, 0.0001);
+
+  c1.osc.frequency.exponentialRampToValueAtTime(500, t + 0.20);
+  c2.osc.frequency.exponentialRampToValueAtTime(560, t + 0.25);
+  c3.osc.frequency.exponentialRampToValueAtTime(690, t + 0.30);
+  c4.osc.frequency.exponentialRampToValueAtTime(760, t + 0.37);
+}
+
+function playCrowdDisappointedSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const d1 = makeOsc("sine", 360, t, 0.22, 0.018, 0.0001);
+  const d2 = makeOsc("triangle", 300, t + 0.05, 0.28, 0.016, 0.0001);
+  const d3 = makeOsc("sine", 240, t + 0.11, 0.34, 0.014, 0.0001);
+
+  d1.osc.frequency.exponentialRampToValueAtTime(290, t + 0.22);
+  d2.osc.frequency.exponentialRampToValueAtTime(235, t + 0.33);
+  d3.osc.frequency.exponentialRampToValueAtTime(180, t + 0.45);
+}
+
+function playFinishSound() {
+  if (!audioUnlocked || !audioCtx) return;
+  const t = audioCtx.currentTime;
+
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((freq, i) => {
+    const start = t + i * 0.16;
+    const n = makeOsc("triangle", freq, start, 0.5, 0.04, 0.0001);
+    n.osc.frequency.exponentialRampToValueAtTime(freq * 1.03, start + 0.5);
+  });
+
+  const finale = makeOsc("sine", 1318.5, t + 0.68, 0.8, 0.05, 0.0001);
+  finale.osc.frequency.exponentialRampToValueAtTime(1567.98, t + 1.48);
+}
+
+["pointerdown", "touchstart", "mousedown", "keydown"].forEach(evt => {
+  window.addEventListener(evt, ensureAudio, { passive: true, once: false });
+});
+
+nameInputs.forEach(input => {
+  input.addEventListener("input", () => {
+    input.value = input.value
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .slice(0, 6);
+  });
+});
+
+function setDisplayedNames() {
+  nameEls.forEach((el, index) => {
+    el.textContent = playerNames[index] || "";
+  });
+}
+
+function animateCurrentPlayerName() {
+  nameEls.forEach(el => el.classList.remove("active-turn-name"));
+
+  const activeNameEl = nameEls[currentPlayer];
+  if (!activeNameEl) return;
+
+  void activeNameEl.offsetWidth;
+  activeNameEl.classList.add("active-turn-name");
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function prepareGameQuestions() {
+  gameQuestions = shuffleArray(questionBank);
+  questionIndex = 0;
+}
+
+function getNextQuestion() {
+  if (questionIndex >= gameQuestions.length) {
+    gameQuestions = shuffleArray(questionBank);
+    questionIndex = 0;
+  }
+
+  const base = gameQuestions[questionIndex++];
+  const answers = base.answers.map((text, index) => ({
+    text,
+    isCorrect: index === 0
+  }));
+
+  const shuffledAnswers = shuffleArray(answers);
+  const correctIndex = shuffledAnswers.findIndex(a => a.isCorrect);
+
+  return {
+    question: base.question,
+    answers: shuffledAnswers.map(a => a.text),
+    correct: correctIndex
+  };
+}
+
+function fitQuestionText() {
+  const qtext = document.getElementById("question");
+  const box = document.getElementById("qbox");
+  const answers = document.getElementById("answers");
+
+  let fontSize = 30;
+  const minFont = 11;
+
+  qtext.style.fontSize = fontSize + "px";
+
+  requestAnimationFrame(() => {
+    const boxHeight = box.clientHeight;
+    const answersHeight = answers.scrollHeight;
+    const availableHeight = Math.max(40, boxHeight - answersHeight - 26);
+
+    qtext.style.minHeight = availableHeight + "px";
+    qtext.style.maxHeight = availableHeight + "px";
+
+    while ((qtext.scrollHeight > availableHeight || qtext.scrollWidth > qtext.clientWidth) && fontSize > minFont) {
+      fontSize -= 1;
+      qtext.style.fontSize = fontSize + "px";
+    }
+  });
+}
+
+function getRoundRange() {
+  return {
+    start: (round - 1) * 10 + 1,
+    end: round * 10
+  };
+}
+
+function getTurnOrder() {
+  if (round < 10) return baseTurnPatterns[(round - 1) % 3];
+  return round10Order;
+}
+
+function updatePlayerEffects() {
+  playerEls.forEach((el, index) => {
+    const isRelevant = attackTarget !== null
+      ? (index === currentPlayer || index === attackTarget)
+      : index === currentPlayer;
+
+    el.classList.toggle("active-player", index === currentPlayer);
+    el.classList.toggle("attack-target", index === attackTarget);
+    el.classList.toggle("dimmed-player", !isRelevant);
+  });
+}
+
+function setCurrentPlayer() {
+  currentPlayer = getTurnOrder()[currentTurnIndex];
+  updatePlayerEffects();
+  animateCurrentPlayerName();
+}
+
+function drawNumbers() {
+  let div = document.getElementById("numbers");
+  div.innerHTML = "";
+  div.classList.toggle("final-round", round === 10);
+
+  let { start, end } = getRoundRange();
+
+  for (let i = start; i <= end; i++) {
+    let b = document.createElement("button");
+    b.innerText = i;
+    b.type = "button";
+    b.disabled = true;
+
+    if (used.has(i)) b.classList.add("used-number");
+
+    div.appendChild(b);
+  }
+}
+
+function getAvailableNumbers() {
+  let { start, end } = getRoundRange();
+  let nums = [];
+
+  for (let i = start; i <= end; i++) {
+    if (!used.has(i)) nums.push(i);
+  }
+
+  return nums;
+}
+
+function findAttackNumber() {
+  let available = getAvailableNumbers();
+  let myScore = players[currentPlayer];
+
+  for (let i = 0; i < 3; i++) {
+    if (i === currentPlayer) continue;
+
+    let diff = players[i] - myScore;
+    if (diff > 0 && available.includes(diff)) {
+      return { number: diff, target: i };
+    }
+  }
+
+  return null;
+}
+
+function showAttackLock() {
+  attackDimEl.classList.add("show");
+}
+
+function hideAttackLock() {
+  attackDimEl.classList.remove("show");
+}
+
+function maybePlayCrowdHit(num) {
+  if (num >= 7) {
+    playCrowdHitSound();
+  }
+}
+
+function showAttackResult(isCorrect) {
+  attackResultTextEl.textContent = isCorrect ? "TOČNO!" : "NETOČNO!";
+  attackResultTextEl.classList.remove("show-correct", "show-wrong");
+  void attackResultTextEl.offsetWidth;
+  attackResultTextEl.classList.add(isCorrect ? "show-correct" : "show-wrong");
+}
+
+let interval;
+
+function stopCounter() {
+  running = false;
+  clearInterval(interval);
+}
+
+function hideAttackVisuals() {
+  attackTextEl.classList.remove("show");
+  attackNumberEl.classList.remove("show");
+  attackNumberEl.textContent = "";
+  attackResultTextEl.classList.remove("show-correct", "show-wrong");
+  attackResultTextEl.textContent = "";
+  counter.classList.remove("hidden");
+}
+
+function hideWinnerOverlay() {
+  winnerOverlayEl.classList.remove("show");
+  winnerNameEl.textContent = "";
+  winnerScoreEl.textContent = "";
+}
+
+function showRoundAnimation(callback) {
+  const isFinalRound = round === 10;
+
+  roundTextEl.textContent = isFinalRound ? "FINALNI KRUG" : round + ".KRUG";
+  roundTextEl.classList.toggle("final-round", isFinalRound);
+  roundTextEl.classList.remove("animate");
+  void roundTextEl.offsetWidth;
+  roundTextEl.classList.add("animate");
+
+  if (isFinalRound) {
+    playFinalRoundSound();
+  } else {
+    playRoundSound();
+  }
+
+  trackedTimeout(() => {
+    if (callback) callback();
+  }, 3000);
+}
+
+function startAttackSequence(number) {
+  counter.classList.add("hidden");
+  attackNumberEl.classList.remove("show");
+  attackNumberEl.textContent = "";
+  attackTextEl.classList.remove("show");
+  void attackTextEl.offsetWidth;
+  showAttackLock();
+  updatePlayerEffects();
+  attackTextEl.classList.add("show");
+  playAttackSound();
+
+  trackedTimeout(() => {
+    attackNumberEl.textContent = number;
+    attackNumberEl.classList.add("show");
+  }, 2600);
+
+  trackedTimeout(() => {
+    startQuestion(number);
+  }, 3600);
+}
+
+function startCounter() {
+  if (gameFinished) return;
+
+  stopCounter();
+  hideAttackVisuals();
+
+  let attack = findAttackNumber();
+
+  if (attack) {
+    attackTarget = attack.target;
+    updatePlayerEffects();
+    currentNumber = attack.number;
+    startAttackSequence(currentNumber);
+    return;
+  }
+
+  attackTarget = null;
+  hideAttackLock();
+  updatePlayerEffects();
+
+  let nums = getAvailableNumbers();
+  if (nums.length === 0) return;
+
+  running = true;
+
+  interval = trackedInterval(() => {
+    let available = getAvailableNumbers();
+    if (available.length === 0) {
+      stopCounter();
+      return;
+    }
+
+    let r = available[Math.floor(Math.random() * available.length)];
+    if (r !== currentNumber) playCounterClickSound();
+    currentNumber = r;
+    counter.innerText = r;
+  }, 50);
+}
+
+counter.onclick = () => {
+  if (!running || questionOpen || gameFinished) return;
+  if (currentNumber === null) return;
+
+  ensureAudio();
+  stopCounter();
+  startQuestion(currentNumber);
+};
+
+function startQuestion(num) {
+  if (questionOpen || gameFinished) return;
+
+  used.add(num);
+  drawNumbers();
+  questionOpen = true;
+  selectedAnswerLocked = false;
+
+  const q = getNextQuestion();
+  let box = document.getElementById("qbox");
+  let qtext = document.getElementById("question");
+  let ans = document.getElementById("answers");
+
+  qtext.innerText = q.question;
+  ans.innerHTML = "";
+
+  q.answers.forEach((a, i) => {
+    let b = document.createElement("button");
+    b.type = "button";
+    b.innerText = a;
+
+    b.addEventListener("pointerdown", () => {
+      if (!selectedAnswerLocked) {
+        ensureAudio();
+        b.classList.add("pressed");
+      }
+    });
+
+    const clearPressed = () => b.classList.remove("pressed");
+    b.addEventListener("pointerup", clearPressed);
+    b.addEventListener("pointerleave", clearPressed);
+    b.addEventListener("pointercancel", clearPressed);
+    b.addEventListener("mouseup", clearPressed);
+    b.addEventListener("mouseleave", clearPressed);
+    b.addEventListener("touchend", clearPressed);
+
+    b.onclick = () => handleAnswerSelection(i, q.correct, num);
+    ans.appendChild(b);
+  });
+
+  box.style.display = "flex";
+  fitQuestionText();
+}
+
+function handleAnswerSelection(selectedIndex, correctIndex, num) {
+  if (selectedAnswerLocked || gameFinished) return;
+  selectedAnswerLocked = true;
+
+  const buttons = [...document.querySelectorAll("#answers button")];
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    btn.classList.remove("pressed");
+  });
+
+  const isCorrect = selectedIndex === correctIndex;
+  const isAttackQuestion = attackTarget !== null;
+
+  if (isCorrect) {
+    buttons[selectedIndex].classList.add("correct-answer");
+    playCorrectSound();
+    if (isAttackQuestion) {
+      showAttackResult(true);
+      playAttackResultMp3(true);
+      playCrowdHitSound();
+    }
+  } else {
+    buttons[selectedIndex].classList.add("wrong-answer");
+    buttons[correctIndex].classList.add("reveal-answer");
+    playWrongSound();
+    if (isAttackQuestion) {
+      showAttackResult(false);
+      playAttackResultMp3(false);
+      playCrowdDisappointedSound();
+    }
+  }
+
+  trackedTimeout(() => {
+    answer(isCorrect, num);
+  }, isAttackQuestion ? 3000 : 1000);
+}
+
+function animateScoreLoss(playerIndex, fromValue, done) {
+  const el = playerEls[playerIndex];
+
+  if (fromValue <= 0) {
+    el.innerText = 0;
+    done();
+    return;
+  }
+
+  playScoreLossSound();
+  el.classList.add("lose-zoom");
+
+  const duration = 900;
+  const stepTime = 50;
+  const steps = Math.max(1, Math.floor(duration / stepTime));
+  let step = 0;
+
+  const tick = trackedInterval(() => {
+    step++;
+    const remaining = Math.max(0, Math.round(fromValue * (1 - step / steps)));
+    el.innerText = remaining;
+
+    if (step >= steps) {
+      clearInterval(tick);
+      el.innerText = 0;
+
+      trackedTimeout(() => {
+        el.classList.remove("lose-zoom");
+        done();
+      }, 180);
+    }
+  }, stepTime);
+}
+
+function animateScoreGain(playerIndex, fromValue, toValue, done) {
+  const el = playerEls[playerIndex];
+
+  if (toValue <= fromValue) {
+    el.innerText = toValue;
+    done();
+    return;
+  }
+
+  playScoreGainSound();
+  el.classList.add("gain-zoom");
+
+  const duration = 900;
+  const stepTime = 50;
+  const steps = Math.max(1, Math.floor(duration / stepTime));
+  let step = 0;
+
+  const tick = trackedInterval(() => {
+    step++;
+    const gained = Math.round(fromValue + ((toValue - fromValue) * step / steps));
+    el.innerText = Math.min(toValue, gained);
+
+    if (step >= steps) {
+      clearInterval(tick);
+      el.innerText = toValue;
+
+      trackedTimeout(() => {
+        el.classList.remove("gain-zoom");
+        done();
+      }, 180);
+    }
+  }, stepTime);
+}
+
+function answer(correct, num) {
+  if (gameFinished) return;
+
+  questionOpen = false;
+  selectedAnswerLocked = false;
+  document.getElementById("qbox").style.display = "none";
+
+  if (attackTarget !== null) {
+    if (correct) {
+      const targetIndex = attackTarget;
+      const attackerIndex = currentPlayer;
+      const oldTargetScore = players[targetIndex];
+      const oldAttackerScore = players[attackerIndex];
+      const newAttackerScore = oldAttackerScore + num;
+
+      players[targetIndex] = 0;
+      players[attackerIndex] = newAttackerScore;
+
+      playerEls[targetIndex].innerText = oldTargetScore;
+      playerEls[attackerIndex].innerText = oldAttackerScore;
+
+      animateScoreLoss(targetIndex, oldTargetScore, () => {
+        attackTarget = null;
+        hideAttackLock();
+        updatePlayerEffects();
+        animateScoreGain(attackerIndex, oldAttackerScore, newAttackerScore, () => {
+          updateScores();
+          nextTurn();
+        });
+      });
+    } else {
+      const loserIndex = currentPlayer;
+      const oldLoserScore = players[loserIndex];
+
+      players[currentPlayer] = 0;
+      playerEls[loserIndex].innerText = oldLoserScore;
+
+      animateScoreLoss(loserIndex, oldLoserScore, () => {
+        attackTarget = null;
+        hideAttackLock();
+        updatePlayerEffects();
+        updateScores();
+        nextTurn();
+      });
+    }
+  } else {
+    if (correct) {
+      const winnerIndex = currentPlayer;
+      const oldWinnerScore = players[winnerIndex];
+      const newWinnerScore = oldWinnerScore + num;
+
+      players[winnerIndex] = newWinnerScore;
+      playerEls[winnerIndex].innerText = oldWinnerScore;
+
+      maybePlayCrowdHit(num);
+
+      animateScoreGain(winnerIndex, oldWinnerScore, newWinnerScore, () => {
+        attackTarget = null;
+        hideAttackLock();
+        updatePlayerEffects();
+        updateScores();
+        nextTurn();
+      });
+      return;
+    }
+
+    attackTarget = null;
+    hideAttackLock();
+    updatePlayerEffects();
+    updateScores();
+    nextTurn();
+  }
+}
+
+function updateScores() {
+  document.getElementById("p1").innerText = players[0];
+  document.getElementById("p2").innerText = players[1];
+  document.getElementById("p3").innerText = players[2];
+}
+
+function getWinnerData() {
+  let winnerIndex = 0;
+
+  for (let i = 1; i < players.length; i++) {
+    if (players[i] > players[winnerIndex]) {
+      winnerIndex = i;
+    }
+  }
+
+  const winnerName = playerNames[winnerIndex] || `IGRAČ ${winnerIndex + 1}`;
+
+  return {
+    index: winnerIndex,
+    name: winnerName,
+    score: players[winnerIndex]
+  };
+}
+
+function finishGame() {
+  if (gameFinished) return;
+
+  gameFinished = true;
+  stopCounter();
+  hideAttackVisuals();
+  hideAttackLock();
+  counter.innerText = "KRAJ";
+  playFinishSound();
+
+  const winner = getWinnerData();
+
+  trackedTimeout(() => {
+    winnerNameEl.textContent = winner.name;
+    winnerScoreEl.textContent = winner.score;
+    winnerOverlayEl.classList.remove("show");
+    void winnerOverlayEl.offsetWidth;
+    winnerOverlayEl.classList.add("show");
+  }, 1000);
+}
+
+function nextTurn() {
+  if (gameFinished) return;
+
+  currentTurnIndex++;
+
+  if (currentTurnIndex >= 3) {
+
+    if (round === 9) {
+      round10Order = [0, 1, 2]
+        .map(index => ({ index, score: players[index] }))
+        .sort((a, b) => a.score - b.score)
+        .map(item => item.index);
+    }
+
+    round++;
+    currentTurnIndex = 0;
+
+    if (round > 10) {
+      finishGame();
+      return;
+    }
+
+    drawNumbers();
+
+    setCurrentPlayer();
+    showRoundAnimation(() => {
+      startCounter();
+    });
+    return;
+  }
+
+  setCurrentPlayer();
+  currentNumber = null;
+  counter.innerText = "-";
+  startCounter();
+}
+
+function startGame() {
+  clearTrackedTimers();
+  round = 1;
+  currentTurnIndex = 0;
+  round10Order = null;
+  attackTarget = null;
+  used = new Set();
+  players = [0, 0, 0];
+  questionOpen = false;
+  selectedAnswerLocked = false;
+  gameFinished = false;
+  prepareGameQuestions();
+  setDisplayedNames();
+  setCurrentPlayer();
+  drawNumbers();
+  updateScores();
+  currentNumber = 7;
+  counter.innerText = "7";
+  roundTextEl.textContent = "1.KRUG";
+  roundTextEl.classList.remove("final-round");
+  hideAttackLock();
+  hideAttackVisuals();
+  hideWinnerOverlay();
+  updatePlayerEffects();
+  resetBtn.style.display = "flex";
+  showRoundAnimation(() => {
+    startCounter();
+  });
+}
+
+function resetGameToStart() {
+  clearTrackedTimers();
+  stopCounter();
+  running = false;
+  players = [0, 0, 0];
+  round = 1;
+  currentTurnIndex = 0;
+  currentPlayer = 0;
+  currentNumber = null;
+  questionOpen = false;
+  round10Order = null;
+  attackTarget = null;
+  selectedAnswerLocked = false;
+  playerNames = ["", "", ""];
+  gameFinished = false;
+  used = new Set();
+  questionIndex = 0;
+  gameQuestions = [];
+
+  nameInputs.forEach(input => {
+    input.value = "";
+  });
+
+  setDisplayedNames();
+  updateScores();
+  drawNumbers();
+  hideAttackLock();
+  hideAttackVisuals();
+  hideWinnerOverlay();
+  updatePlayerEffects();
+
+  document.getElementById("qbox").style.display = "none";
+  numbersEl.innerHTML = "";
+  roundTextEl.textContent = "";
+  counter.innerText = "-";
+  resetBtn.style.display = "none";
+  startScreenEl.style.display = "flex";
+}
+
+function launchGameFromStartScreen() {
+  playerNames = nameInputs.map(input => input.value.trim().slice(0, 6).toUpperCase());
+  setDisplayedNames();
+  startScreenEl.style.display = "none";
+  startGame();
+}
+
+startBtn.addEventListener("pointerdown", (e) => {
+  ensureAudio();
+  startBtn.classList.add("pressed");
+  if (startBtn.setPointerCapture) {
+    try {
+      startBtn.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  }
+});
+
+startBtn.addEventListener("pointerup", () => {
+  if (!startBtn.classList.contains("pressed")) return;
+  startBtn.classList.remove("pressed");
+  launchGameFromStartScreen();
+});
+
+startBtn.addEventListener("pointercancel", () => {
+  startBtn.classList.remove("pressed");
+});
+
+startBtn.addEventListener("lostpointercapture", () => {
+  startBtn.classList.remove("pressed");
+});
+
+startBtn.addEventListener("dragstart", (e) => {
+  e.preventDefault();
+});
+
+resetBtn.addEventListener("click", () => {
+  ensureAudio();
+  resetGameToStart();
+});
+</script>
+
+</body>
+</html>
