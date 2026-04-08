@@ -33,6 +33,12 @@ body {
   overflow: hidden;
 }
 
+.game.paused *,
+.game.paused *::before,
+.game.paused *::after {
+  animation-play-state: paused !important;
+}
+
 .start-screen {
   position: absolute;
   inset: 0;
@@ -189,6 +195,36 @@ body {
 }
 
 .reset-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.12);
+}
+
+/* PAUSE / PLAY TIPKA */
+.pause-btn {
+  position: absolute;
+  top: 1.9%;
+  right: 2.6%;
+  width: 7.2%;
+  aspect-ratio: 1 / 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.92);
+  background: rgba(8, 16, 40, 0.45);
+  color: white;
+  font-size: clamp(20px, 3.4vw, 32px);
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 22;
+  box-shadow:
+    0 0 10px rgba(0,0,0,0.35),
+    0 0 12px rgba(30,94,255,0.35);
+  transition: transform 0.08s ease, filter 0.12s ease, background 0.12s ease;
+}
+
+.pause-btn:active {
   transform: scale(0.96);
   filter: brightness(1.12);
 }
@@ -860,7 +896,7 @@ body {
 
 <body>
 
-<div class="game">
+<div class="game" id="game">
 
   <div class="start-screen" id="startScreen">
     <div class="start-form">
@@ -878,6 +914,7 @@ body {
   </div>
 
   <button class="reset-btn" id="resetBtn" type="button" aria-label="Reset">↺</button>
+  <button class="pause-btn" id="pauseBtn" type="button" aria-label="Pauza / Play">❚❚</button>
 
   <div class="attack-dim" id="attackDim"></div>
 
@@ -934,6 +971,7 @@ let playerNames = ["", "", ""];
 let gameFinished = false;
 let botDotsInterval = null;
 let botAutoStopTimeout = null;
+let isPaused = false;
 
 let gameQuestions = [];
 let questionIndex = 0;
@@ -948,6 +986,7 @@ const BOT_ACCURACY = {
   2: 0.70
 };
 
+const gameEl = document.getElementById("game");
 const counter = document.getElementById("counter");
 const attackTextEl = document.getElementById("attackText");
 const attackNumberEl = document.getElementById("attackNumber");
@@ -958,6 +997,7 @@ const numbersEl = document.getElementById("numbers");
 const startScreenEl = document.getElementById("startScreen");
 const startBtn = document.getElementById("startBtn");
 const resetBtn = document.getElementById("resetBtn");
+const pauseBtn = document.getElementById("pauseBtn");
 const winnerOverlayEl = document.getElementById("winnerOverlay");
 const winnerNameEl = document.getElementById("winnerName");
 const winnerScoreEl = document.getElementById("winnerScore");
@@ -1529,38 +1569,122 @@ booAudio.preload = "auto";
 applauseAudio.volume = 0.5;
 booAudio.volume = 0.5;
 
+function createTrackedTimer(type, fn, delay) {
+  const timer = {
+    type,
+    fn,
+    delay,
+    remaining: delay,
+    startedAt: 0,
+    nativeId: null,
+    paused: false,
+    cleared: false
+  };
+
+  if (type === "timeout") {
+    activeTimeouts.push(timer);
+    startTrackedTimeoutTimer(timer);
+  } else {
+    activeIntervals.push(timer);
+    startTrackedIntervalTimer(timer);
+  }
+
+  return timer;
+}
+
+function startTrackedTimeoutTimer(timer) {
+  if (timer.cleared) return;
+  timer.startedAt = Date.now();
+  timer.nativeId = setTimeout(() => {
+    if (timer.cleared || timer.paused || isPaused) return;
+    removeTrackedTimer(timer);
+    timer.fn();
+  }, timer.remaining);
+}
+
+function startTrackedIntervalTimer(timer) {
+  if (timer.cleared) return;
+  timer.remaining = timer.delay;
+  timer.startedAt = Date.now();
+  timer.nativeId = setTimeout(function tick() {
+    if (timer.cleared || timer.paused || isPaused) return;
+    timer.fn();
+    if (timer.cleared || timer.paused || isPaused) return;
+    timer.startedAt = Date.now();
+    timer.nativeId = setTimeout(tick, timer.delay);
+  }, timer.remaining);
+}
+
 function trackedTimeout(fn, delay) {
-  const id = setTimeout(() => {
-    activeTimeouts = activeTimeouts.filter(t => t !== id);
-    fn();
-  }, delay);
-  activeTimeouts.push(id);
-  return id;
+  return createTrackedTimer("timeout", fn, delay);
 }
 
 function trackedInterval(fn, delay) {
-  const id = setInterval(fn, delay);
-  activeIntervals.push(id);
-  return id;
+  return createTrackedTimer("interval", fn, delay);
+}
+
+function removeTrackedTimer(timer) {
+  activeTimeouts = activeTimeouts.filter(t => t !== timer);
+  activeIntervals = activeIntervals.filter(t => t !== timer);
+}
+
+function clearTrackedTimer(timer) {
+  if (!timer || timer.cleared) return;
+  clearTimeout(timer.nativeId);
+  timer.cleared = true;
+  timer.nativeId = null;
+  removeTrackedTimer(timer);
+}
+
+function pauseTrackedTimer(timer) {
+  if (!timer || timer.cleared || timer.paused) return;
+  clearTimeout(timer.nativeId);
+  const elapsed = Date.now() - timer.startedAt;
+  if (timer.type === "timeout") {
+    timer.remaining = Math.max(0, timer.remaining - elapsed);
+  } else {
+    timer.remaining = Math.max(0, timer.delay - elapsed);
+  }
+  timer.paused = true;
+  timer.nativeId = null;
+}
+
+function resumeTrackedTimer(timer) {
+  if (!timer || timer.cleared || !timer.paused) return;
+  timer.paused = false;
+  if (timer.type === "timeout") {
+    startTrackedTimeoutTimer(timer);
+  } else {
+    startTrackedIntervalTimer(timer);
+  }
+}
+
+function pauseAllTrackedTimers() {
+  activeTimeouts.forEach(pauseTrackedTimer);
+  activeIntervals.forEach(pauseTrackedTimer);
+}
+
+function resumeAllTrackedTimers() {
+  activeTimeouts.forEach(resumeTrackedTimer);
+  activeIntervals.forEach(resumeTrackedTimer);
 }
 
 function clearTrackedTimers() {
-  activeTimeouts.forEach(clearTimeout);
-  activeIntervals.forEach(clearInterval);
+  [...activeTimeouts, ...activeIntervals].forEach(clearTrackedTimer);
   activeTimeouts = [];
   activeIntervals = [];
 }
 
 function clearBotDotsAnimation() {
   if (botDotsInterval) {
-    clearInterval(botDotsInterval);
+    clearTrackedTimer(botDotsInterval);
     botDotsInterval = null;
   }
 }
 
 function clearBotAutoStop() {
   if (botAutoStopTimeout) {
-    clearTimeout(botAutoStopTimeout);
+    clearTrackedTimer(botAutoStopTimeout);
     botAutoStopTimeout = null;
   }
 }
@@ -1606,14 +1730,14 @@ function makeOsc(type, frequency, startTime, duration, gainStart, gainEnd) {
 }
 
 function playCounterClickSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
   const { osc } = makeOsc("square", 520, t, 0.03, 0.012, 0.0001);
   osc.frequency.exponentialRampToValueAtTime(780, t + 0.03);
 }
 
 function playRoundSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const a = makeOsc("triangle", 330, t, 0.22, 0.0001, 0.03);
@@ -1627,7 +1751,7 @@ function playRoundSound() {
 }
 
 function playFinalRoundSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const intro1 = makeOsc("triangle", 392, t, 0.24, 0.0001, 0.04);
@@ -1655,7 +1779,7 @@ function playFinalRoundSound() {
 }
 
 function playAttackSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   for (let i = 0; i < 4; i++) {
@@ -1669,7 +1793,7 @@ function playAttackSound() {
 }
 
 function playCorrectSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const n1 = makeOsc("triangle", 660, t, 0.16, 0.045, 0.0001);
@@ -1682,7 +1806,7 @@ function playCorrectSound() {
 }
 
 function playWrongSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const w1 = makeOsc("sawtooth", 320, t, 0.18, 0.05, 0.0001);
@@ -1693,7 +1817,7 @@ function playWrongSound() {
 }
 
 function playScoreGainSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
   const s1 = makeOsc("sine", 520, t, 0.08, 0.02, 0.0001);
   const s2 = makeOsc("sine", 780, t + 0.08, 0.11, 0.018, 0.0001);
@@ -1702,7 +1826,7 @@ function playScoreGainSound() {
 }
 
 function playScoreLossSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
   const s1 = makeOsc("sine", 420, t, 0.1, 0.02, 0.0001);
   const s2 = makeOsc("sine", 260, t + 0.08, 0.16, 0.02, 0.0001);
@@ -1711,7 +1835,7 @@ function playScoreLossSound() {
 }
 
 function playCrowdHitSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const c1 = makeOsc("triangle", 420, t, 0.20, 0.015, 0.0001);
@@ -1726,7 +1850,7 @@ function playCrowdHitSound() {
 }
 
 function playCrowdDisappointedSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const d1 = makeOsc("sine", 360, t, 0.22, 0.018, 0.0001);
@@ -1739,7 +1863,7 @@ function playCrowdDisappointedSound() {
 }
 
 function playFinishSound() {
-  if (!audioUnlocked || !audioCtx) return;
+  if (!audioUnlocked || !audioCtx || isPaused) return;
   const t = audioCtx.currentTime;
 
   const notes = [523.25, 659.25, 783.99, 1046.5];
@@ -1953,7 +2077,8 @@ let interval;
 
 function stopCounter() {
   running = false;
-  clearInterval(interval);
+  clearTrackedTimer(interval);
+  interval = null;
 }
 
 function hideAttackVisuals() {
@@ -2030,7 +2155,7 @@ function scheduleBotAutoStop() {
   clearBotAutoStop();
   const delay = 700 + Math.floor(Math.random() * 1200);
   botAutoStopTimeout = trackedTimeout(() => {
-    if (!running || questionOpen || gameFinished || isHumanTurn()) return;
+    if (!running || questionOpen || gameFinished || isHumanTurn() || isPaused) return;
     if (currentNumber === null) return;
     stopCounter();
     startQuestion(currentNumber);
@@ -2038,7 +2163,7 @@ function scheduleBotAutoStop() {
 }
 
 function startCounter() {
-  if (gameFinished) return;
+  if (gameFinished || isPaused) return;
 
   clearBotAutoStop();
   stopCounter();
@@ -2082,6 +2207,7 @@ function startCounter() {
 }
 
 counter.onclick = () => {
+  if (isPaused) return;
   if (!isHumanTurn()) return;
   if (!running || questionOpen || gameFinished) return;
   if (currentNumber === null) return;
@@ -2105,7 +2231,7 @@ function startBotThinkingDots() {
 }
 
 function startBotTurn(num) {
-  if (gameFinished) return;
+  if (gameFinished || isPaused) return;
 
   qboxEl.style.display = "flex";
   questionEl.style.display = "none";
@@ -2146,7 +2272,7 @@ function startBotTurn(num) {
 }
 
 function startQuestion(num) {
-  if (questionOpen || gameFinished) return;
+  if (questionOpen || gameFinished || isPaused) return;
 
   used.add(num);
   drawNumbers();
@@ -2173,7 +2299,7 @@ function startQuestion(num) {
     b.innerText = a;
 
     b.addEventListener("pointerdown", () => {
-      if (!selectedAnswerLocked) {
+      if (!selectedAnswerLocked && !isPaused) {
         ensureAudio();
         b.classList.add("pressed");
       }
@@ -2195,6 +2321,7 @@ function startQuestion(num) {
 }
 
 function handleAnswerSelection(selectedIndex, correctIndex, num) {
+  if (isPaused) return;
   if (selectedAnswerLocked || gameFinished) return;
   selectedAnswerLocked = true;
 
@@ -2254,7 +2381,7 @@ function animateScoreLoss(playerIndex, fromValue, done) {
     el.innerText = remaining;
 
     if (step >= steps) {
-      clearInterval(tick);
+      clearTrackedTimer(tick);
       el.innerText = 0;
 
       trackedTimeout(() => {
@@ -2288,7 +2415,7 @@ function animateScoreGain(playerIndex, fromValue, toValue, done) {
     el.innerText = Math.min(toValue, gained);
 
     if (step >= steps) {
-      clearInterval(tick);
+      clearTrackedTimer(tick);
       el.innerText = toValue;
 
       trackedTimeout(() => {
@@ -2300,7 +2427,7 @@ function animateScoreGain(playerIndex, fromValue, toValue, done) {
 }
 
 function answer(correct, num) {
-  if (gameFinished) return;
+  if (gameFinished || isPaused) return;
 
   questionOpen = false;
   selectedAnswerLocked = false;
@@ -2421,7 +2548,7 @@ function finishGame() {
 }
 
 function nextTurn() {
-  if (gameFinished) return;
+  if (gameFinished || isPaused) return;
 
   currentTurnIndex++;
 
@@ -2457,10 +2584,50 @@ function nextTurn() {
   startCounter();
 }
 
+function setPauseButtonIcon() {
+  pauseBtn.textContent = isPaused ? "▶" : "❚❚";
+}
+
+function pauseGame() {
+  if (isPaused || startScreenEl.style.display !== "none" || gameFinished) return;
+  isPaused = true;
+  gameEl.classList.add("paused");
+  pauseAllTrackedTimers();
+  applauseAudio.pause();
+  booAudio.pause();
+  if (audioCtx && audioCtx.state === "running") {
+    audioCtx.suspend().catch(() => {});
+  }
+  setPauseButtonIcon();
+}
+
+function resumeGame() {
+  if (!isPaused) return;
+  isPaused = false;
+  gameEl.classList.remove("paused");
+  if (audioCtx && audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
+  resumeAllTrackedTimers();
+  setPauseButtonIcon();
+}
+
+function togglePauseGame() {
+  ensureAudio();
+  if (isPaused) {
+    resumeGame();
+  } else {
+    pauseGame();
+  }
+}
+
 function startGame() {
   clearTrackedTimers();
   clearBotDotsAnimation();
   clearBotAutoStop();
+  isPaused = false;
+  gameEl.classList.remove("paused");
+  setPauseButtonIcon();
   round = 1;
   currentTurnIndex = 0;
   round10Order = null;
@@ -2486,6 +2653,7 @@ function startGame() {
   hideBotDisplay();
   updatePlayerEffects();
   resetBtn.style.display = "flex";
+  pauseBtn.style.display = "flex";
   showRoundAnimation(() => {
     startCounter();
   });
@@ -2497,6 +2665,9 @@ function resetGameToStart() {
   clearBotAutoStop();
   stopCounter();
   running = false;
+  isPaused = false;
+  gameEl.classList.remove("paused");
+  setPauseButtonIcon();
   players = [0, 0, 0];
   round = 1;
   currentTurnIndex = 0;
@@ -2511,6 +2682,11 @@ function resetGameToStart() {
   used = new Set();
   questionIndex = 0;
   gameQuestions = [];
+
+  applauseAudio.pause();
+  booAudio.pause();
+  applauseAudio.currentTime = 0;
+  booAudio.currentTime = 0;
 
   nameInputs.forEach(input => {
     input.value = "";
@@ -2530,6 +2706,7 @@ function resetGameToStart() {
   roundTextEl.textContent = "";
   counter.innerText = "-";
   resetBtn.style.display = "none";
+  pauseBtn.style.display = "none";
   startScreenEl.style.display = "flex";
 }
 
@@ -2572,6 +2749,10 @@ startBtn.addEventListener("dragstart", (e) => {
 resetBtn.addEventListener("click", () => {
   ensureAudio();
   resetGameToStart();
+});
+
+pauseBtn.addEventListener("click", () => {
+  togglePauseGame();
 });
 </script>
 
