@@ -33,6 +33,10 @@ body {
   overflow: hidden;
 }
 
+.game.winner-background {
+  background: url("pobijednik.png") center/100% 100% no-repeat;
+}
+
 .game.paused *,
 .game.paused *::before,
 .game.paused *::after {
@@ -614,11 +618,11 @@ body {
 .winner-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.58);
+  background: transparent;
   opacity: 0;
   pointer-events: none;
   z-index: 18;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.2s ease;
 }
 
 .winner-overlay.show {
@@ -631,19 +635,13 @@ body {
   top: 50%;
   left: 50%;
   width: 82%;
-  aspect-ratio: 9 / 16;
   transform: translate(-50%, -50%);
+  text-align: center;
   opacity: 1;
-  background: url("pobijednik.png") center/contain no-repeat;
 }
 
 .winner-name {
-  position: absolute;
-  top: 47%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.45);
-  width: 70%;
-  text-align: center;
+  margin-top: 4.2%;
   font-size: clamp(34px, 6.6vw, 76px);
   font-weight: 900;
   color: #ffe66a;
@@ -652,20 +650,14 @@ body {
     0 0 10px rgba(255,230,106,0.7),
     0 0 24px rgba(255,180,0,0.35);
   word-break: break-word;
-  opacity: 0;
 }
 
-.winner-overlay.show .winner-name {
+.winner-name.animate {
   animation: winnerNameZoom 1.2s ease forwards;
 }
 
 .winner-score {
-  position: absolute;
-  top: 60%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60%;
-  text-align: center;
+  margin-top: 4%;
   font-size: clamp(28px, 5vw, 58px);
   font-weight: 900;
   color: white;
@@ -676,20 +668,20 @@ body {
 
 @keyframes winnerNameZoom {
   0% {
+    transform: scale(0.45);
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.45);
   }
   35% {
+    transform: scale(1.12);
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.12);
   }
   70% {
+    transform: scale(0.98);
     opacity: 1;
-    transform: translate(-50%, -50%) scale(0.98);
   }
   100% {
+    transform: scale(1);
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -2083,8 +2075,10 @@ function hideAttackVisuals() {
 
 function hideWinnerOverlay() {
   winnerOverlayEl.classList.remove("show");
+  winnerNameEl.classList.remove("animate");
   winnerNameEl.textContent = "";
   winnerScoreEl.textContent = "";
+  gameEl.classList.remove("winner-background");
 }
 
 function hideBotDisplay() {
@@ -2095,6 +2089,29 @@ function hideBotDisplay() {
   botStatusEl.className = "bot-status";
   questionEl.style.display = "flex";
   answersEl.style.display = "grid";
+}
+
+function showGameUi() {
+  numbersEl.style.display = "flex";
+  roundTextEl.style.display = "";
+  counter.style.display = "flex";
+  attackTextEl.style.display = "";
+  attackNumberEl.style.display = "";
+  attackResultTextEl.style.display = "";
+  playerEls.forEach(el => el.style.display = "flex");
+  nameEls.forEach(el => el.style.display = "");
+}
+
+function hideGameUiForWinner() {
+  numbersEl.style.display = "none";
+  roundTextEl.style.display = "none";
+  counter.style.display = "none";
+  attackTextEl.style.display = "none";
+  attackNumberEl.style.display = "none";
+  attackResultTextEl.style.display = "none";
+  qboxEl.style.display = "none";
+  playerEls.forEach(el => el.style.display = "none");
+  nameEls.forEach(el => el.style.display = "none");
 }
 
 function showRoundAnimation(callback) {
@@ -2530,8 +2547,16 @@ function finishGame() {
   const winner = getWinnerData();
 
   trackedTimeout(() => {
+    hideGameUiForWinner();
+    gameEl.classList.add("winner-background");
+    pauseBtn.style.display = "none";
+
     winnerNameEl.textContent = winner.name;
     winnerScoreEl.textContent = winner.score;
+    winnerNameEl.classList.remove("animate");
+    void winnerNameEl.offsetWidth;
+    winnerNameEl.classList.add("animate");
+
     winnerOverlayEl.classList.remove("show");
     void winnerOverlayEl.offsetWidth;
     winnerOverlayEl.classList.add("show");
@@ -2618,6 +2643,7 @@ function startGame() {
   clearBotAutoStop();
   isPaused = false;
   gameEl.classList.remove("paused");
+  gameEl.classList.remove("winner-background");
   setPauseButtonIcon();
   round = 1;
   currentTurnIndex = 0;
@@ -2632,6 +2658,7 @@ function startGame() {
   assignBotNames();
   setDisplayedNames();
   setCurrentPlayer();
+  showGameUi();
   drawNumbers();
   updateScores();
   currentNumber = 7;
@@ -2658,6 +2685,7 @@ function resetGameToStart() {
   running = false;
   isPaused = false;
   gameEl.classList.remove("paused");
+  gameEl.classList.remove("winner-background");
   setPauseButtonIcon();
   players = [0, 0, 0];
   round = 1;
@@ -2685,6 +2713,7 @@ function resetGameToStart() {
 
   setDisplayedNames();
   updateScores();
+  showGameUi();
   drawNumbers();
   hideAttackLock();
   hideAttackVisuals();
